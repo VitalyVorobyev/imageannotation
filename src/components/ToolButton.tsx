@@ -6,6 +6,7 @@ interface ToolButtonProps {
     onClick?: () => void;
     title?: string;
     children?: React.ReactNode;
+    disabled?: boolean;
 };
 
 const ToolButton = ({
@@ -13,7 +14,8 @@ const ToolButton = ({
     active,
     onClick,
     title,
-    children
+    children,
+    disabled
 }: ToolButtonProps) => {
     return (
         <button
@@ -21,6 +23,7 @@ const ToolButton = ({
             active ? "bg-sky-600 text-white border-sky-700" : "bg-white/90 hover:bg-white border-gray-200"}`}
             onClick={onClick}
             title={title || label}
+            disabled={disabled}
         >
             {children || label}
         </button>
