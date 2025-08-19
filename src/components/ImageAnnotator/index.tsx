@@ -25,7 +25,8 @@ const ImageAnnotator = () => {
 
     // Custom hooks for core functionality
     const {
-        zoom, pan, onWheel, zoomToFit, zoomIn, zoomOut
+        zoom, pan, onWheel, zoomToFit, zoomIn, zoomOut,
+        startPan, updatePan, endPan
     } = usePanZoom();
 
     const {
@@ -149,14 +150,16 @@ const ImageAnnotator = () => {
     // Pointer event handlers
     const onPointerDown = (e: React.PointerEvent) => {
         if (!image) return;
-        const mouse = getMousePoint(e, containerRef);
-        const img = screenToImage(mouse, zoom, pan);
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
 
         // Panning (tool or spacebar)
         if (tool === "pan" || isPanning) {
+            startPan(e);
             return;
         }
+
+        const mouse = getMousePoint(e, containerRef);
+        const img = screenToImage(mouse, zoom, pan);
 
         // Start drawing tools
         if (tool === "rect") {
@@ -198,6 +201,10 @@ const ImageAnnotator = () => {
     };
 
     const onPointerMove = (e: React.PointerEvent) => {
+        if (tool === "pan" || isPanning) {
+            updatePan(e);
+            return;
+        }
         if (!image) return;
         const mouse = getMousePoint(e, containerRef);
         const img = screenToImage(mouse, zoom, pan);
@@ -220,6 +227,10 @@ const ImageAnnotator = () => {
     };
 
     const onPointerUp = () => {
+        if (tool === "pan" || isPanning) {
+            endPan();
+            return;
+        }
         if (draftRect) {
             finalizeDraftRect();
             endOp();
