@@ -155,7 +155,7 @@ const useShapeManipulation = () => {
                 kind: hit.kind,
                 shapeId: hit.shape.id,
                 index: hit.index,
-                edge: hit.edge as any,
+                edge: hit.edge as "left" | "right" | "top" | "bottom" | undefined,
                 startMouseImg: imgPt,
                 startShape: JSON.parse(JSON.stringify(hit.shape)), // deep clone
             };

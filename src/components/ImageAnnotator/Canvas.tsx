@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { type Point, type Shape } from '../../types';
+import { type BezierShape, type Point, type PolylineShape, type RectShape, type Shape } from '../../types';
 import AnnotationOverlay from './AnnotationOverlay';
 
 interface CanvasProps {
@@ -8,10 +8,10 @@ interface CanvasProps {
     pan: Point;
     shapes: Shape[];
     selectedId: string | null;
-    draftRect: any;
-    draftPoly: any;
-    draftBezier: any;
-    hover: any;
+    draftRect: RectShape | null;
+    draftPoly: PolylineShape | null;
+    draftBezier: BezierShape | null;
+    hover: { id: string | null; handle?: string} | null;
     width: number;
     height: number;
     onPointerDown: (e: React.PointerEvent) => void;

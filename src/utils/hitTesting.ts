@@ -8,7 +8,7 @@ const hitTest = (
 ): HitTestResult => {
     // Prioritize handles first
     const byZ = [...shapes]; // simple order
-    for (let s of byZ.slice().reverse()) {
+    for (const s of byZ.slice().reverse()) {
         if (s.type === "rect") {
             const r = normalizeRect(s);
             // corners

@@ -1,5 +1,5 @@
 import React from 'react';
-import { type Point, type RectShape, type Shape } from '../../types';
+import { type BezierShape, type Point, type PolylineShape, type RectShape, type Shape } from '../../types';
 import ShapeRenderer from '../shapes/ShapeRenderer';
 import DraftShapeRenderer from '../shapes/DraftShapeRenderer';
 
@@ -7,8 +7,8 @@ interface AnnotationOverlayProps {
     shapes: Shape[];
     selectedId: string | null;
     draftRect: RectShape | null;
-    draftPoly: any;
-    draftBezier: any;
+    draftPoly: PolylineShape | null;
+    draftBezier: BezierShape | null;
     zoom: number;
     pan: Point;
     width: number;

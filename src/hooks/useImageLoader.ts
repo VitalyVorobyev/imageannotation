@@ -77,7 +77,7 @@ const useImageLoader = () => {
                 const data = JSON.parse(String(reader.result)) as AnnotationBundle;
                 importBundle(data, onShapesLoaded);
             } catch (err) {
-                alert("Invalid annotation JSON");
+                alert("Invalid annotation JSON: " + err);
             }
         };
         reader.readAsText(file);

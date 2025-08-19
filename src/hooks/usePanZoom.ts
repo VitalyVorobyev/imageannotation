@@ -19,14 +19,14 @@ const usePanZoom = ({
     const [isPanning, setIsPanning] = useState(false);
 
     const startPan = (e: React.PointerEvent) => {
-        const mouse = getMousePoint(e, e.currentTarget as any);
+        const mouse = getMousePoint(e, e.currentTarget as unknown as React.RefObject<HTMLDivElement>);
         panStart.current = { x: mouse.x - pan.x, y: mouse.y - pan.y };
         setIsPanning(true);
     };
 
     const updatePan = (e: React.PointerEvent) => {
         if (!panStart.current) return;
-        const mouse = getMousePoint(e, e.currentTarget as any);
+        const mouse = getMousePoint(e, e.currentTarget as unknown as React.RefObject<HTMLDivElement>);
         setPan({
             x: mouse.x - panStart.current.x,
             y: mouse.y - panStart.current.y

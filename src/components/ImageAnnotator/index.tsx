@@ -65,7 +65,7 @@ const ImageAnnotator = () => {
         if (image) {
             zoomToFit(image.naturalWidth, image.naturalHeight, size.w, size.h);
         }
-    }, [image, size.w, size.h]);
+    }, [image, size.w, size.h, zoomToFit]);
 
     // Global shortcuts: Undo/Redo
     useEffect(() => {
@@ -231,7 +231,7 @@ const ImageAnnotator = () => {
 
     // Custom wrapper for onWheel to match Canvas component's expected type
     const handleWheel = (e: React.WheelEvent) => {
-        onWheel(e as any);
+        onWheel(e as React.WheelEvent<HTMLDivElement>);
     };
 
     return (
