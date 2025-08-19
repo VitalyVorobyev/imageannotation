@@ -1,56 +1,284 @@
-// Main container that manages shared state and composes the application
-import { useState } from 'react';
-import { Toolbar } from './Toolbar';
-import { Canvas } from './Canvas';
-import { StatusBar } from './StatusBar';
-import { useHistory } from '../../hooks/useHistory';
-import { useImageLoader } from '../../hooks/useImageLoader';
-import { useShapeManipulation } from '../../hooks/useShapeManipulation';
-// ...
+import React, { useEffect, useRef, useState } from 'react';
+
+import { type Tool } from '../../types';
+
+import Toolbar from './Toolbar';
+import Canvas from './Canvas';
+import StatusBar from './StatusBar';
+import useHistory from '../../hooks/useHistory';
+import useImageLoader from '../../hooks/useImageLoader';
+import useShapeManipulation from '../../hooks/useShapeManipulation';
+import usePanZoom from '../../hooks/usePanZoom';
+import hitTest from '../../utils/hitTesting';
+
+import { getMousePoint, screenToImage } from '../../utils/coordinates';
+import { exportJson } from '../../utils/fileHandlers';
 
 const ImageAnnotator = () => {
-  // Core shared state remains here
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
+    // Canvas & sizing
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const [size, setSize] = useState({ w: 900, h: 600 });
 
-  const [tool, setTool] = useState<Tool>("select");
-  const [shapes, setShapes] = useState<Shape[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  // ...
+    // Tools state
+    const [tool, setTool] = useState<Tool>("select");
+    const [isPanning, setIsPanning] = useState(false);
 
-  // Use custom hooks to encapsulate functionality
-  const { image, imageName, loadImage, importBundle } = useImageLoader();
-  const { shapes, selectedId, setSelectedId, beginOp, endOp, /* ... */ } = useShapeManipulation();
-  const { undo, redo, canUndo, canRedo } = useHistory(shapes, setShapes);
+    // Custom hooks for core functionality
+    const {
+        zoom, pan, onWheel, zoomToFit, zoomIn, zoomOut
+    } = usePanZoom();
 
+    const {
+        image, imageName,
+        handleFileInput, handleDrop, handleDragOver, handleImportJson
+    } = useImageLoader();
 
+    const {
+        shapes, setShapes, selectedId, setSelectedId,
+        draftRect, draftPoly, draftBezier, hover,
+        createRect, updateDraftRect, finalizeDraftRect,
+        createPolyline, finalizeDraftPoly,
+        createBezier, finalizeDraftBezier,
+        createPoint, cancelDrafts,
+        startDrag, updateDrag, endDrag, updateHover,
+        deleteSelected, moveSelectedByArrows
+    } = useShapeManipulation();
 
-  return (
-    <div className="w-full h-full flex flex-col">
-      <Toolbar 
-        tool={tool} 
-        setTool={setToolAndFinalize}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        /* ... */
-      />
-      <Canvas 
-        image={image}
-        zoom={zoom}
-        pan={pan}
-        shapes={shapes}
-        selectedId={selectedId}
-        /* ... */
-      />
-      <StatusBar
-        image={image}
-        imageName={imageName}
-        zoom={zoom}
-      />
-    </div>
-  );
-}
+    const {
+        beginOp, endOp, undo, redo, cancelOp, canUndo, canRedo
+    } = useHistory(shapes, setShapes);
+
+    // Resize observer to keep canvas matching container
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const ro = new ResizeObserver(() => {
+            const rect = el.getBoundingClientRect();
+            setSize({ w: Math.max(100, rect.width), h: Math.max(100, rect.height) });
+        });
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+
+    // Auto-fit whenever a new image loads or the container resizes
+    useEffect(() => {
+        if (image) {
+            zoomToFit(image.naturalWidth, image.naturalHeight, size.w, size.h);
+        }
+    }, [image, size.w, size.h]);
+
+    // Global shortcuts: Undo/Redo
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            const ctrl = e.ctrlKey || e.metaKey;
+            if (!ctrl) return;
+            const k = e.key.toLowerCase();
+            if (k === "z") {
+                e.preventDefault();
+                if (e.shiftKey) redo(); else undo();
+            } else if (k === "y") {
+                e.preventDefault();
+                redo();
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [undo, redo]);
+
+    // Keyboard ops: delete, arrows, enter, escape
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Delete" || e.key === "Backspace") {
+                if (selectedId) {
+                    beginOp();
+                    deleteSelected();
+                    endOp();
+                }
+            } else if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+                if (!selectedId) return;
+                e.preventDefault();
+                const delta = e.shiftKey ? 10 : 1;
+                const dx = e.key === "ArrowLeft" ? -delta : e.key === "ArrowRight" ? delta : 0;
+                const dy = e.key === "ArrowUp" ? -delta : e.key === "ArrowDown" ? delta : 0;
+                beginOp();
+                moveSelectedByArrows(dx / zoom, dy / zoom);
+                endOp();
+            } else if (e.key === "Enter") {
+                if (draftPoly) {
+                    finalizeDraftPoly();
+                } else if (draftBezier) {
+                    finalizeDraftBezier();
+                }
+            } else if (e.key === "Escape") {
+                cancelDrafts();
+                cancelOp();
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [selectedId, draftPoly, draftBezier, zoom, beginOp, endOp, deleteSelected, moveSelectedByArrows, finalizeDraftPoly, finalizeDraftBezier, cancelDrafts, cancelOp]);
+
+    // Space key for temporary pan tool
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === " " && !e.repeat) {
+                setIsPanning(true);
+            }
+        };
+        const onKeyUp = (e: KeyboardEvent) => {
+            if (e.key === " ") {
+                setIsPanning(false);
+            }
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+        window.addEventListener("keyup", onKeyUp);
+        return () => {
+            window.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener("keyup", onKeyUp);
+        };
+    }, []);
+
+    // Set tool and finalize drafts if needed
+    const setToolAndFinalize = (newTool: Tool) => {
+        if (draftPoly) finalizeDraftPoly();
+        if (draftBezier) finalizeDraftBezier();
+        setTool(newTool);
+    };
+
+    // Pointer event handlers
+    const onPointerDown = (e: React.PointerEvent) => {
+        if (!image) return;
+        const mouse = getMousePoint(e, containerRef);
+        const img = screenToImage(mouse, zoom, pan);
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+
+        // Panning (tool or spacebar)
+        if (tool === "pan" || isPanning) {
+            return;
+        }
+
+        // Start drawing tools
+        if (tool === "rect") {
+            beginOp();
+            createRect(img);
+            return;
+        }
+
+        if (tool === "poly") {
+            if (!draftPoly) beginOp();
+            createPolyline(img);
+            return;
+        }
+
+        if (tool === "bezier") {
+            if (!draftBezier) beginOp();
+            createBezier(img);
+            return;
+        }
+
+        if (tool === "point") {
+            beginOp();
+            createPoint(img);
+            endOp();
+            return;
+        }
+
+        // Selection / begin drag
+        if (tool === "select") {
+            const hit = hitTest(img, 8 / zoom, shapes);
+            if (hit) {
+                beginOp();
+                setSelectedId(hit.shape.id);
+                startDrag(img, 8 / zoom);
+            } else {
+                setSelectedId(null);
+            }
+        }
+    };
+
+    const onPointerMove = (e: React.PointerEvent) => {
+        if (!image) return;
+        const mouse = getMousePoint(e, containerRef);
+        const img = screenToImage(mouse, zoom, pan);
+
+        // Update drafts
+        if (draftRect) {
+            updateDraftRect(img);
+            return;
+        }
+
+        // Dragging existing shape/handles
+        if (updateDrag(img)) {
+            return;
+        }
+
+        // Hover feedback in select mode
+        if (tool === "select") {
+            updateHover(img, 8 / zoom);
+        }
+    };
+
+    const onPointerUp = () => {
+        if (draftRect) {
+            finalizeDraftRect();
+            endOp();
+            return;
+        }
+        endDrag();
+        endOp();
+    };
+
+    // Custom wrapper for onWheel to match Canvas component's expected type
+    const handleWheel = (e: React.WheelEvent) => {
+        onWheel(e as any);
+    };
+
+    return (
+        <div ref={containerRef} className="w-full h-full flex flex-col">
+            <Toolbar
+                tool={tool}
+                setTool={setToolAndFinalize}
+                onUndo={undo}
+                onRedo={redo}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onZoomToFit={() => image && zoomToFit(image.naturalWidth, image.naturalHeight, size.w, size.h)}
+                onZoomIn={zoomIn}
+                onZoomOut={zoomOut}
+                zoom={zoom}
+                onLoadImage={handleFileInput}
+                onImportJson={(e) => handleImportJson(e, setShapes)}
+                onExportJson={() => exportJson(shapes, image, imageName, false)}
+                onExportBundle={() => exportJson(shapes, image, imageName, true)}
+            />
+
+            <Canvas
+                image={image}
+                zoom={zoom}
+                pan={pan}
+                shapes={shapes}
+                selectedId={selectedId}
+                draftRect={draftRect}
+                draftPoly={draftPoly}
+                draftBezier={draftBezier}
+                hover={hover}
+                width={size.w}
+                height={size.h}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onWheel={handleWheel}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+            />
+
+            <StatusBar
+                image={image}
+                imageName={imageName}
+            />
+        </div>
+    );
+};
 
 export default ImageAnnotator;
