@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { type Point } from '../types';
-import { clamp, getMousePoint, screenToImage } from '../utils/coordinates';
+import { clamp, screenToImage } from '../utils/coordinates';
 
 interface UsePanZoomProps {
     initialZoom?: number;
@@ -19,17 +19,25 @@ const usePanZoom = ({
     const [isPanning, setIsPanning] = useState(false);
 
     const startPan = (e: React.PointerEvent) => {
-        const mouse = getMousePoint(e, e.currentTarget as unknown as React.RefObject<HTMLDivElement>);
+        const bounds = (e.currentTarget as Element).getBoundingClientRect();
+        const mouse = {
+            x: e.clientX - bounds.left,
+            y: e.clientY - bounds.top,
+        };
         panStart.current = { x: mouse.x - pan.x, y: mouse.y - pan.y };
         setIsPanning(true);
     };
 
     const updatePan = (e: React.PointerEvent) => {
         if (!panStart.current) return;
-        const mouse = getMousePoint(e, e.currentTarget as unknown as React.RefObject<HTMLDivElement>);
+        const bounds = (e.currentTarget as Element).getBoundingClientRect();
+        const mouse = {
+            x: e.clientX - bounds.left,
+            y: e.clientY - bounds.top,
+        };
         setPan({
             x: mouse.x - panStart.current.x,
-            y: mouse.y - panStart.current.y
+            y: mouse.y - panStart.current.y,
         });
     };
 
