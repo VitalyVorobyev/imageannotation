@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { type AnnotationBundle, type Shape } from '../types';
 
-const useImageLoader = () => {
+const useImageLoader = (onReset?: () => void) => {
     const [image, setImage] = useState<HTMLImageElement | null>(null);
     const [imageName, setImageName] = useState<string | undefined>(undefined);
 
@@ -12,6 +12,7 @@ const useImageLoader = () => {
         img.onload = () => {
             setImage(img);
             setImageName(file.name);
+            onReset?.();
         };
 
         img.onerror = () => {
@@ -31,6 +32,7 @@ const useImageLoader = () => {
         img.onload = () => {
             setImage(img);
             setImageName(name);
+            onReset?.();
         };
         img.src = dataUrl;
     };
