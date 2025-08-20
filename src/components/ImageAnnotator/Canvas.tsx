@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { type BezierShape, type Point, type PolylineShape, type RectShape, type Shape } from '../../types';
 import AnnotationOverlay from './AnnotationOverlay';
+import styles from './Canvas.module.css';
 
 interface CanvasProps {
     image: HTMLImageElement | null;
@@ -75,12 +76,12 @@ const Canvas = ({
     return (
         <div
             ref={containerRef}
-            className="relative flex-1 bg-neutral-900 overflow-hidden"
+            className={styles.container}
             onWheel={onWheel}
             onDragOver={onDragOver}
             onDrop={onDrop}
         >
-            <canvas ref={canvasRef} className="absolute inset-0" />
+            <canvas ref={canvasRef} className={styles.canvas} />
             <AnnotationOverlay
                 shapes={shapes}
                 selectedId={selectedId}
@@ -97,11 +98,11 @@ const Canvas = ({
             />
 
             {/* Hint overlay */}
-            <div className="absolute bottom-2 left-2 text-xs text-white/80 bg-black/40 rounded-md px-2 py-1">
-                <span className="mr-3">Space: pan</span>
-                <span className="mr-3">Wheel: zoom</span>
-                <span className="mr-3">Enter: finish</span>
-                <span className="mr-3">Del: delete</span>
+            <div className={styles.hint}>
+                <span>Space: pan</span>
+                <span>Wheel: zoom</span>
+                <span>Enter: finish</span>
+                <span>Del: delete</span>
                 <span>Shift+Arrows: fast nudge</span>
             </div>
         </div>

@@ -5,6 +5,7 @@ import { type Tool } from '../../types';
 import Toolbar from './Toolbar';
 import Canvas from './Canvas';
 import StatusBar from './StatusBar';
+import styles from './ImageAnnotator.module.css';
 import useHistory from '../../hooks/useHistory';
 import useImageLoader from '../../hooks/useImageLoader';
 import useShapeManipulation from '../../hooks/useShapeManipulation';
@@ -258,7 +259,7 @@ const ImageAnnotator = () => {
     return (
         <div
             ref={containerRef}
-            className="w-full h-full flex flex-col"
+            className={styles.wrapper}
             onContextMenu={(e) => {
                 e.preventDefault();
                 setToolAndFinalize("select");

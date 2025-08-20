@@ -2,6 +2,7 @@ import React from 'react';
 import { type BezierShape, type Point, type PolylineShape, type RectShape, type Shape } from '../../types';
 import ShapeRenderer from '../shapes/ShapeRenderer';
 import DraftShapeRenderer from '../shapes/DraftShapeRenderer';
+import styles from './AnnotationOverlay.module.css';
 
 interface AnnotationOverlayProps {
     shapes: Shape[];
@@ -40,7 +41,7 @@ const AnnotationOverlay = ({
 
     return (
         <svg
-            className="absolute inset-0 pointer-events-auto"
+            className={styles.overlay}
             width={width}
             height={height}
             onPointerDown={onPointerDown}
