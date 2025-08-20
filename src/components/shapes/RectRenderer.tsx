@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { type RectShape, type Point } from '../../types';
-import { normalizeRect } from '../../utils/shapeHelpers';
+import { normalizeRect, getShapeCenter } from '../../utils/shapeHelpers';
 import HandleRenderer from './HandleRenderer';
 
 interface RectRendererProps {
@@ -18,7 +18,15 @@ const RectRenderer: React.FC<RectRendererProps> = ({
     imageToScreen
 }) => {
     const r = normalizeRect(shape);
+    const center = getShapeCenter(r);
+    const centerScreen = imageToScreen(center);
+    const rotation = shape.rotation ?? 0;
+    const deg = (rotation * 180) / Math.PI;
     const a = imageToScreen({ x: r.x, y: r.y });
+    const topCenter = { x: center.x, y: r.y };
+    const rotHandle = { x: center.x, y: r.y - 20 };
+    const topCenterScreen = imageToScreen(topCenter);
+    const rotHandleScreen = imageToScreen(rotHandle);
 
     // Generate corner points in image space
     const corners: Point[] = [
@@ -32,7 +40,7 @@ const RectRenderer: React.FC<RectRendererProps> = ({
     const cornerLabels = ["left top", "right top", "left bottom", "right bottom"];
 
     return (
-        <>
+        <g transform={`rotate(${deg} ${centerScreen.x} ${centerScreen.y})`}>
             <rect
                 x={a.x}
                 y={a.y}
@@ -55,9 +63,22 @@ const RectRenderer: React.FC<RectRendererProps> = ({
                         label={cornerLabels[i]}
                     />
                 ))}
+                <line
+                    x1={topCenterScreen.x}
+                    y1={topCenterScreen.y}
+                    x2={rotHandleScreen.x}
+                    y2={rotHandleScreen.y}
+                    stroke="#0ea5e9"
+                    strokeWidth={2}
+                />
+                <HandleRenderer
+                    point={rotHandle}
+                    imageToScreen={imageToScreen}
+                    type="rotate"
+                />
             </>
             )}
-        </>
+        </g>
     );
 };
 

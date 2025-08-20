@@ -1,6 +1,6 @@
 import React from 'react';
 import { type BezierShape, type Point } from '../../types';
-import { toPathD, pathToScreen } from '../../utils/shapeHelpers';
+import { toPathD, pathToScreen, getShapeBounds, getShapeCenter } from '../../utils/shapeHelpers';
 import HandleRenderer from './HandleRenderer';
 
 interface BezierRendererProps {
@@ -18,14 +18,20 @@ const BezierRenderer: React.FC<BezierRendererProps> = ({
     selected,
     imageToScreen
 }) => {
-    // Generate SVG path string in image coordinates
+    const bounds = getShapeBounds(shape);
+    const center = getShapeCenter(shape);
+    const centerScreen = imageToScreen(center);
+    const rotation = shape.rotation ?? 0;
+    const deg = (rotation * 180) / Math.PI;
     const pathInImageCoords = toPathD(shape.nodes, shape.closed);
-
-    // Convert path to screen coordinates
     const pathInScreenCoords = pathToScreen(pathInImageCoords, zoom, pan);
+    const topCenter = { x: center.x, y: bounds.y };
+    const rotHandle = { x: center.x, y: bounds.y - 20 };
+    const topCenterScreen = imageToScreen(topCenter);
+    const rotHandleScreen = imageToScreen(rotHandle);
 
     return (
-        <>
+        <g transform={`rotate(${deg} ${centerScreen.x} ${centerScreen.y})`}>
             <path
                 d={pathInScreenCoords}
                 fill={shape.fill || "transparent"}
@@ -91,9 +97,22 @@ const BezierRenderer: React.FC<BezierRendererProps> = ({
                         )}
                     </React.Fragment>
                 ))}
+                <line
+                    x1={topCenterScreen.x}
+                    y1={topCenterScreen.y}
+                    x2={rotHandleScreen.x}
+                    y2={rotHandleScreen.y}
+                    stroke="#0ea5e9"
+                    strokeWidth={2}
+                />
+                <HandleRenderer
+                    point={rotHandle}
+                    imageToScreen={imageToScreen}
+                    type="rotate"
+                />
                 </>
             )}
-        </>
+        </g>
     );
 };
 

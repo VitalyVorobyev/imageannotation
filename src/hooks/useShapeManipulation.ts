@@ -8,7 +8,7 @@ import {
     type RectShape,
     type Shape
 } from '../types';
-import { genId, moveShapeBy, normalizeRect } from '../utils/shapeHelpers';
+import { genId, moveShapeBy, normalizeRect, getShapeCenter, rotatePoint } from '../utils/shapeHelpers';
 import hitTest from '../utils/hitTesting';
 
 const useShapeManipulation = () => {
@@ -31,6 +31,7 @@ const useShapeManipulation = () => {
             h: 0,
             stroke: "#38bdf8",
             fill: "rgba(56,189,248,0.12)",
+            rotation: 0,
         };
         setDraftRect(r);
         setSelectedId(r.id);
@@ -63,6 +64,7 @@ const useShapeManipulation = () => {
                 type: "polyline",
                 points: [imgPt],
                 stroke: "#22c55e",
+                rotation: 0,
             };
             setDraftPoly(poly);
             setSelectedId(poly.id);
@@ -93,6 +95,7 @@ const useShapeManipulation = () => {
                 nodes: [{ p: imgPt }],
                 stroke: "#eab308",
                 fill: "transparent",
+                rotation: 0,
             };
             setDraftBezier(bz);
             setSelectedId(bz.id);
@@ -170,13 +173,30 @@ const useShapeManipulation = () => {
         if (!dragRef.current) return false;
 
         const d = dragRef.current;
-        const dx = imgPt.x - d.startMouseImg.x;
-        const dy = imgPt.y - d.startMouseImg.y;
         const start = d.startShape as Shape;
+        const globalDx = imgPt.x - d.startMouseImg.x;
+        const globalDy = imgPt.y - d.startMouseImg.y;
+
+        let dx = globalDx;
+        let dy = globalDy;
+        const rotation = 'rotation' in start && typeof start.rotation === 'number' ? start.rotation : 0;
+        if (rotation && d.kind !== "move-shape" && d.kind !== "rotate") {
+            const center = getShapeCenter(start);
+            const startLocal = rotatePoint(d.startMouseImg, center, -rotation);
+            const curLocal = rotatePoint(imgPt, center, -rotation);
+            dx = curLocal.x - startLocal.x;
+            dy = curLocal.y - startLocal.y;
+        }
 
         let updated: Shape | null = null;
         if (d.kind === "move-shape") {
-            updated = moveShapeBy(start, dx, dy);
+            updated = moveShapeBy(start, globalDx, globalDy);
+        } else if (d.kind === "rotate") {
+            const center = getShapeCenter(start);
+            const startAngle = Math.atan2(d.startMouseImg.y - center.y, d.startMouseImg.x - center.x);
+            const curAngle = Math.atan2(imgPt.y - center.y, imgPt.x - center.x);
+            const delta = curAngle - startAngle;
+            updated = { ...start, rotation: rotation + delta } as Shape;
         } else if (start.type === "rect") {
             if (d.kind === "rect-corner" || d.kind === "rect-edge") {
                 const r = { ...start } as RectShape;
