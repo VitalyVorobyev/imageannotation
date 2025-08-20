@@ -19,15 +19,26 @@ const PolylineRenderer: React.FC<PolylineRendererProps> = ({
 
     return (
         <>
-            <polyline
-                points={pointsStr}
-                fill={shape.closed ? (shape.fill || "rgba(34,197,94,0.08)") : "none"}
-                stroke={shape.stroke || "#22c55e"}
-                strokeWidth={2}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                className={shape.closed ? 'closed' : ''}
-            />
+            {shape.closed ? (
+                <polygon
+                    points={pointsStr}
+                    fill={shape.fill || "rgba(34,197,94,0.08)"}
+                    stroke={shape.stroke || "#22c55e"}
+                    strokeWidth={2}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    className="closed"
+                />
+            ) : (
+                <polyline
+                    points={pointsStr}
+                    fill="none"
+                    stroke={shape.stroke || "#22c55e"}
+                    strokeWidth={2}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                />
+            )}
 
             {selected && shape.points.map((point, i) => (
                 <HandleRenderer
