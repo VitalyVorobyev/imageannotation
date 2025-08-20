@@ -30,11 +30,6 @@ const ImageAnnotator = () => {
     } = usePanZoom();
 
     const {
-        image, imageName,
-        handleFileInput, handleDrop, handleDragOver, handleImportJson
-    } = useImageLoader();
-
-    const {
         shapes, setShapes, selectedId, setSelectedId,
         draftRect, draftPoly, draftBezier, hover,
         createRect, updateDraftRect, finalizeDraftRect,
@@ -44,6 +39,11 @@ const ImageAnnotator = () => {
         startDrag, updateDrag, endDrag, updateHover,
         deleteSelected, moveSelectedByArrows
     } = useShapeManipulation();
+
+    const {
+        image, imageName,
+        handleFileInput, handleDrop, handleDragOver, handleImportJson
+    } = useImageLoader(() => setShapes([]));
 
     const {
         beginOp, endOp, undo, redo, cancelOp, canUndo, canRedo
