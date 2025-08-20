@@ -69,7 +69,7 @@ export type DragState =
             | "bezier-h2";
         shapeId: string;
         index?: number; // vertex/node index
-        edge?: "left" | "right" | "top" | "bottom"; // for rect edges
+        edge?: string; // identifies which rect edge or corner is dragged
         startMouseImg: Point;
         startShape: Shape;
     };
