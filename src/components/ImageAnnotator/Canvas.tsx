@@ -47,10 +47,16 @@ const Canvas = ({
     useEffect(() => {
         const cvs = canvasRef.current;
         if (!cvs) return;
-        cvs.width = width;
-        cvs.height = height;
         const ctx = cvs.getContext("2d");
         if (!ctx) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        cvs.width = width * dpr;
+        cvs.height = height * dpr;
+        cvs.style.width = `${width}px`;
+        cvs.style.height = `${height}px`;
+        ctx.scale(dpr, dpr);
+
         ctx.clearRect(0, 0, width, height);
         if (!image) return;
 
