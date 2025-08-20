@@ -177,13 +177,14 @@ const useShapeManipulation = () => {
         const globalDx = imgPt.x - d.startMouseImg.x;
         const globalDy = imgPt.y - d.startMouseImg.y;
 
+        const startCenter = getShapeCenter(start);
+
         let dx = globalDx;
         let dy = globalDy;
         const rotation = 'rotation' in start && typeof start.rotation === 'number' ? start.rotation : 0;
         if (rotation && d.kind !== "move-shape" && d.kind !== "rotate") {
-            const center = getShapeCenter(start);
-            const startLocal = rotatePoint(d.startMouseImg, center, -rotation);
-            const curLocal = rotatePoint(imgPt, center, -rotation);
+            const startLocal = rotatePoint(d.startMouseImg, startCenter, -rotation);
+            const curLocal = rotatePoint(imgPt, startCenter, -rotation);
             dx = curLocal.x - startLocal.x;
             dy = curLocal.y - startLocal.y;
         }
@@ -248,6 +249,14 @@ const useShapeManipulation = () => {
         }
 
         if (updated) {
+            if (rotation && d.kind !== "move-shape" && d.kind !== "rotate") {
+                const newCenter = getShapeCenter(updated);
+                const cdx = startCenter.x - newCenter.x;
+                const cdy = startCenter.y - newCenter.y;
+                if (cdx || cdy) {
+                    updated = moveShapeBy(updated, cdx, cdy);
+                }
+            }
             setShapes((prev) =>
                 prev.map((s) => (s.id === updated!.id ? updated as Shape : s))
             );
