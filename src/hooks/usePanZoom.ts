@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { type Point } from '../types';
 import { clamp, screenToImage } from '../utils/coordinates';
 
@@ -46,7 +46,7 @@ const usePanZoom = ({
         setIsPanning(false);
     };
 
-    const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const onWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
         e.preventDefault();
         const container = e.currentTarget;
         const bounds = container.getBoundingClientRect();
@@ -68,9 +68,9 @@ const usePanZoom = ({
 
         setZoom(newZoom);
         setPan(newPan);
-    };
+    }, [zoom, pan, minZoom, maxZoom]);
 
-    const zoomToFit = (imageWidth: number, imageHeight: number, containerWidth: number, containerHeight: number) => {
+    const zoomToFit = useCallback((imageWidth: number, imageHeight: number, containerWidth: number, containerHeight: number) => {
         if (!imageWidth || !imageHeight) return;
 
         const k = Math.min(containerWidth / imageWidth, containerHeight / imageHeight);
@@ -81,7 +81,7 @@ const usePanZoom = ({
             x: (containerWidth - imageWidth * z) / 2,
             y: (containerHeight - imageHeight * z) / 2
         });
-    };
+    }, [minZoom, maxZoom]);
 
     const zoomIn = () => {
         setZoom(z => clamp(z * 1.2, minZoom, maxZoom));
