@@ -15,14 +15,12 @@ export const imageToScreen = (p: Point, zoom: number, pan: Point): Point => {
 };
 
 export const getMousePoint = (
-    e: React.PointerEvent | PointerEvent,
-    containerRef: React.RefObject<HTMLDivElement | null>
-): Point  => {
-    if (!containerRef.current) return { x: 0, y: 0 };
-    const bounds = containerRef.current.getBoundingClientRect();
+    e: React.PointerEvent | PointerEvent
+): Point => {
+    const bounds = (e.currentTarget as Element).getBoundingClientRect();
     return {
         x: e.clientX - bounds.left,
-        y: e.clientY - bounds.top
+        y: e.clientY - bounds.top,
     };
 };
 
