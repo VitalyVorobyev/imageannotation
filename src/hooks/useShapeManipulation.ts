@@ -155,7 +155,7 @@ const useShapeManipulation = () => {
                 kind: hit.kind,
                 shapeId: hit.shape.id,
                 index: hit.index,
-                edge: hit.edge as "left" | "right" | "top" | "bottom" | undefined,
+                edge: hit.edge,
                 startMouseImg: imgPt,
                 startShape: JSON.parse(JSON.stringify(hit.shape)), // deep clone
             };
@@ -180,19 +180,21 @@ const useShapeManipulation = () => {
         } else if (start.type === "rect") {
             if (d.kind === "rect-corner" || d.kind === "rect-edge") {
                 const r = { ...start } as RectShape;
-                if (d.edge === "left") {
+                const e = d.edge ?? "";
+                if (e.includes("left")) {
                     const nx = r.x + dx;
                     const dw = r.x + r.w - nx;
                     r.x = nx;
                     r.w = dw;
-                } else if (d.edge === "right") {
+                } else if (e.includes("right")) {
                     r.w = r.w + dx;
-                } else if (d.edge === "top") {
+                }
+                if (e.includes("top")) {
                     const ny = r.y + dy;
                     const dh = r.y + r.h - ny;
                     r.y = ny;
                     r.h = dh;
-                } else if (d.edge === "bottom") {
+                } else if (e.includes("bottom")) {
                     r.h = r.h + dy;
                 }
                 updated = r;

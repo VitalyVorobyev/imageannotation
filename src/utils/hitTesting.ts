@@ -20,9 +20,8 @@ const hitTest = (
             ];
             for (const [c, label] of corners) {
                 if (dist2(imgPt, c) <= tol * tol) {
-                    const edge = label.includes("left") ? "left" : "right";
-                    // corner drag uses both axes (edge signals which side changes)
-                    return { shape: s, kind: "rect-corner", edge };
+                    // For corners, store full label (e.g. "left top") so both axes can change
+                    return { shape: s, kind: "rect-corner", edge: label };
                 }
             }
             // edges
