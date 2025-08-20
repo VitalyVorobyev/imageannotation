@@ -1,4 +1,5 @@
 import React from 'react';
+import styles from './ToolButton.module.css';
 
 interface ToolButtonProps {
     label?: string;
@@ -17,10 +18,10 @@ const ToolButton = ({
     children,
     disabled
 }: ToolButtonProps) => {
+    const className = [styles.button, active ? styles.active : ""].filter(Boolean).join(" ");
     return (
         <button
-            className={`px-3 py-2 rounded-2xl border text-sm font-medium shadow-sm transition active:scale-[.98] select-none ${
-            active ? "bg-sky-600 text-white border-sky-700" : "bg-white/90 hover:bg-white border-gray-200"}`}
+            className={className}
             onClick={onClick}
             title={title || label}
             disabled={disabled}

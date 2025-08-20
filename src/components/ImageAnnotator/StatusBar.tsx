@@ -1,3 +1,5 @@
+import styles from './StatusBar.module.css';
+
 interface StatusBarProps {
     image: HTMLImageElement | null;
     imageName?: string;
@@ -5,7 +7,7 @@ interface StatusBarProps {
 
 const StatusBar = ({ image, imageName }: StatusBarProps) => {
     return (
-        <div className="px-3 py-1 border-t bg-gray-50/70 text-sm text-gray-600">
+        <div className={styles.statusBar}>
             {image ? (
                 <span>
                     Image: {imageName || 'unnamed'} ({image.naturalWidth}×{image.naturalHeight})

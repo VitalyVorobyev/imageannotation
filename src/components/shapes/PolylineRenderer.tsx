@@ -37,7 +37,6 @@ const PolylineRenderer: React.FC<PolylineRendererProps> = ({
                     strokeWidth={2}
                     strokeLinejoin="round"
                     strokeLinecap="round"
-                    className="closed"
                 />
             ) : (
                 <polyline
