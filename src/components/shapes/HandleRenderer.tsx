@@ -4,7 +4,7 @@ import { type Point } from '../../types';
 interface HandleRendererProps {
     point: Point;
     imageToScreen: (p: Point) => Point;
-    type: "rect" | "poly" | "bezier-anchor" | "bezier-h1" | "bezier-h2";
+    type: "rect" | "poly" | "bezier-anchor" | "bezier-h1" | "bezier-h2" | "rotate";
     label?: string;
     index?: number;
     smaller?: boolean;
@@ -52,6 +52,18 @@ const HandleRenderer: React.FC<HandleRendererProps> = ({
                 />
             );
 
+        case "rotate":
+            return (
+                <circle
+                    cx={screenPoint.x}
+                    cy={screenPoint.y}
+                    r={handleSize + 2}
+                    fill="#ffffff"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    data-handle-type={type}
+                />
+            );
         case "rect":
         case "poly":
         default:

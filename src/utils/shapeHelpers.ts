@@ -10,6 +10,17 @@ export const dist2 = (a: Point, b: Point): number => {
     return dx * dx + dy * dy;
 };
 
+export const rotatePoint = (p: Point, center: Point, angle: number): Point => {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const dx = p.x - center.x;
+    const dy = p.y - center.y;
+    return {
+        x: center.x + dx * cos - dy * sin,
+        y: center.y + dx * sin + dy * cos,
+    };
+};
+
 export const pointToSegDist2 = (p: Point, a: Point, b: Point): number => {
     const l2 = dist2(a, b);
     if (l2 === 0) return dist2(p, a);
@@ -99,6 +110,39 @@ export const moveShapeBy = (s: Shape, dx: number, dy: number): Shape => {
     case "point":
         return { ...s, p: { x: s.p.x + dx, y: s.p.y + dy } };
     }
+};
+
+export const getShapeBounds = (s: Shape): RectShape => {
+    switch (s.type) {
+    case "rect":
+        return normalizeRect(s);
+    case "polyline": {
+        const xs = s.points.map(p => p.x);
+        const ys = s.points.map(p => p.y);
+        const minX = Math.min(...xs);
+        const minY = Math.min(...ys);
+        const maxX = Math.max(...xs);
+        const maxY = Math.max(...ys);
+        return { type: "rect", id: "", x: minX, y: minY, w: maxX - minX, h: maxY - minY } as RectShape;
+    }
+    case "bezier": {
+        const pts = s.nodes.map(n => n.p);
+        const xs = pts.map(p => p.x);
+        const ys = pts.map(p => p.y);
+        const minX = Math.min(...xs);
+        const minY = Math.min(...ys);
+        const maxX = Math.max(...xs);
+        const maxY = Math.max(...ys);
+        return { type: "rect", id: "", x: minX, y: minY, w: maxX - minX, h: maxY - minY } as RectShape;
+    }
+    case "point":
+        return { type: "rect", id: "", x: s.p.x, y: s.p.y, w: 0, h: 0 } as RectShape;
+    }
+};
+
+export const getShapeCenter = (s: Shape): Point => {
+    const b = getShapeBounds(s);
+    return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
 };
 
 // Convert an SVG path in image coords to a path in screen coords

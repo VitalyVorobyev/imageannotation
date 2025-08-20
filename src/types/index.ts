@@ -17,12 +17,14 @@ export type RectShape = BaseShape & {
     w: number;
     h: number;
     r?: number; // border radius (optional)
+    rotation?: number; // radians
 };
 
 export type PolylineShape = BaseShape & {
     type: "polyline";
     points: Point[];
     closed?: boolean;
+    rotation?: number; // radians
 };
 
 // Cubic bezier path defined by anchors with optional handles
@@ -35,6 +37,7 @@ export type BezierShape = BaseShape & {
     type: "bezier";
     nodes: BezierNode[]; // at least 2 anchors
     closed?: boolean;
+    rotation?: number; // radians
 };
 
 export type PointShape = BaseShape & {
@@ -66,7 +69,8 @@ export type DragState =
             | "poly-vertex"
             | "bezier-anchor"
             | "bezier-h1"
-            | "bezier-h2";
+            | "bezier-h2"
+            | "rotate";
         shapeId: string;
         index?: number; // vertex/node index
         edge?: string; // identifies which rect edge or corner is dragged
@@ -85,7 +89,8 @@ export type HitTestResult =
             | "poly-vertex"
             | "bezier-anchor"
             | "bezier-h1"
-            | "bezier-h2";
+            | "bezier-h2"
+            | "rotate";
         index?: number;
         edge?: string;
     };
