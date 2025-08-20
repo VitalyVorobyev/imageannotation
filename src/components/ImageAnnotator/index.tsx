@@ -22,6 +22,7 @@ const ImageAnnotator = () => {
     // Tools state
     const [tool, setTool] = useState<Tool>("select");
     const [isPanning, setIsPanning] = useState(false);
+    const [isRightPanning, setIsRightPanning] = useState(false);
 
     // Custom hooks for core functionality
     const {
@@ -152,6 +153,14 @@ const ImageAnnotator = () => {
         if (!image) return;
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
 
+        // Right button: switch to select and start panning
+        if (e.button === 2) {
+            setToolAndFinalize("select");
+            setIsRightPanning(true);
+            startPan(e);
+            return;
+        }
+
         // Panning (tool or spacebar)
         if (tool === "pan" || isPanning) {
             startPan(e);
@@ -201,7 +210,7 @@ const ImageAnnotator = () => {
     };
 
     const onPointerMove = (e: React.PointerEvent) => {
-        if (tool === "pan" || isPanning) {
+        if (tool === "pan" || isPanning || isRightPanning) {
             updatePan(e);
             return;
         }
@@ -227,8 +236,9 @@ const ImageAnnotator = () => {
     };
 
     const onPointerUp = () => {
-        if (tool === "pan" || isPanning) {
+        if (tool === "pan" || isPanning || isRightPanning) {
             endPan();
+            setIsRightPanning(false);
             return;
         }
         if (draftRect) {
@@ -246,7 +256,14 @@ const ImageAnnotator = () => {
     };
 
     return (
-        <div ref={containerRef} className="w-full h-full flex flex-col">
+        <div
+            ref={containerRef}
+            className="w-full h-full flex flex-col"
+            onContextMenu={(e) => {
+                e.preventDefault();
+                setToolAndFinalize("select");
+            }}
+        >
             <Toolbar
                 tool={tool}
                 setTool={setToolAndFinalize}
