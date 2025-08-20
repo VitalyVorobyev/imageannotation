@@ -158,7 +158,7 @@ const ImageAnnotator = () => {
             return;
         }
 
-        const mouse = getMousePoint(e, containerRef);
+        const mouse = getMousePoint(e);
         const img = screenToImage(mouse, zoom, pan);
 
         // Start drawing tools
@@ -206,7 +206,7 @@ const ImageAnnotator = () => {
             return;
         }
         if (!image) return;
-        const mouse = getMousePoint(e, containerRef);
+        const mouse = getMousePoint(e);
         const img = screenToImage(mouse, zoom, pan);
 
         // Update drafts
