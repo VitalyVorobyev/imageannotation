@@ -108,7 +108,13 @@ export const moveShapeBy = (s: Shape, dx: number, dy: number): Shape => {
             })),
         };
     case "point":
-        return { ...s, p: { x: s.p.x + dx, y: s.p.y + dy } };
+        return {
+            ...s,
+            p: { x: s.p.x + dx, y: s.p.y + dy },
+            world: s.world
+                ? { x: s.world.x + dx, y: s.world.y + dy, z: s.world.z }
+                : undefined,
+        };
     }
 };
 
