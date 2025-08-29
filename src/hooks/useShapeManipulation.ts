@@ -132,12 +132,15 @@ const useShapeManipulation = () => {
     };
 
     const createPoint = (imgPt: Point) => {
+        const pointIndex = shapes.filter(s => s.type === "point").length + 1;
         const pt: PointShape = {
             id: genId(),
             type: "point",
             p: imgPt,
             stroke: "#f43f5e",
             fill: "#f43f5e",
+            interestId: pointIndex,
+            world: { x: imgPt.x, y: imgPt.y, z: 0 }
         };
         setShapes((prev) => [...prev, pt]);
         setSelectedId(pt.id);

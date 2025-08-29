@@ -1,6 +1,7 @@
 export type Tool = "select" | "pan" | "rect" | "poly" | "bezier" | "point";
 
 export type Point = { x: number; y: number };
+export type Point3 = { x: number; y: number; z: number };
 
 export type BaseShape = {
     id: string;
@@ -43,6 +44,10 @@ export type BezierShape = BaseShape & {
 export type PointShape = BaseShape & {
     type: "point";
     p: Point;
+    /** Optional numeric identifier for the point of interest */
+    interestId?: number;
+    /** Known 3D world coordinate for this point */
+    world?: Point3;
 };
 
 export type Shape = RectShape | PolylineShape | BezierShape | PointShape;
