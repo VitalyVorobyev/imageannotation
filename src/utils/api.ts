@@ -11,8 +11,8 @@ export async function uploadImage(file: File): Promise<string> {
     if (!res.ok) {
         throw new Error(`Failed to upload image: ${res.status} ${res.statusText}`);
     }
-    const data = await res.json() as { id: string };
-    return data.id;
+    const data = await res.json() as { image_id: string };
+    return data.image_id;
 }
 
 export async function requestFeatureDetection(
