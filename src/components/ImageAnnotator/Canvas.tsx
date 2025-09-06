@@ -19,8 +19,6 @@ interface CanvasProps {
     onPointerMove: (e: React.PointerEvent) => void;
     onPointerUp: (e: React.PointerEvent) => void;
     onWheel: (e: React.WheelEvent) => void;
-    onDragOver: (e: React.DragEvent) => void;
-    onDrop: (e: React.DragEvent) => void;
 };
 
 const Canvas = ({
@@ -37,9 +35,7 @@ const Canvas = ({
     onPointerDown,
     onPointerMove,
     onPointerUp,
-    onWheel,
-    onDragOver,
-    onDrop
+    onWheel
 }: CanvasProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -78,8 +74,6 @@ const Canvas = ({
             ref={containerRef}
             className={styles.container}
             onWheel={onWheel}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
         >
             <canvas ref={canvasRef} className={styles.canvas} />
             <AnnotationOverlay

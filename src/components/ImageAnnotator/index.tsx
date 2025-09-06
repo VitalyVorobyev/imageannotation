@@ -305,6 +305,8 @@ const ImageAnnotator = () => {
                 e.preventDefault();
                 setToolAndFinalize("select");
             }}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
         >
             <Toolbar
                 tool={tool}
@@ -345,8 +347,6 @@ const ImageAnnotator = () => {
                     onPointerMove={onPointerMove}
                     onPointerUp={onPointerUp}
                     onWheel={handleWheel}
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop}
                 />
                 <PatternPanel
                     visible={showParams}
