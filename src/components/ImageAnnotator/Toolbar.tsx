@@ -67,15 +67,15 @@ const Toolbar = ({
             <div className={styles.spacer} />
             <div className={styles.group}>
                 <label className={styles.uploadLabel} title="Load image file">
-                    🖼️ Load Image
+                    🖼️
                     <input type="file" accept="image/*" style={{ display: 'none' }} onChange={onLoadImage} />
                 </label>
                 <label className={styles.uploadLabel} title="Import annotation JSON">
-                    📥 Import JSON
+                    📥
                     <input type="file" accept="application/json" style={{ display: 'none' }} onChange={onImportJson} />
                 </label>
-                <ToolButton onClick={onExportJson} title="Export annotations as JSON">💾 Export JSON</ToolButton>
-                <ToolButton onClick={onExportBundle} title="Export image and JSON bundle">📦 Export Bundle</ToolButton>
+                <ToolButton onClick={onExportJson} title="Export annotations as JSON">💾</ToolButton>
+                <ToolButton onClick={onExportBundle} title="Export image and JSON bundle">📦</ToolButton>
                 <select
                     className={styles.featureInput}
                     value={pattern}
