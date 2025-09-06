@@ -6,7 +6,7 @@ const useImageLoader = (onReset?: () => void) => {
     const [image, setImage] = useState<HTMLImageElement | null>(null);
     const [imageName, setImageName] = useState<string | undefined>(undefined);
     const [imageId, setImageId] = useState<string | null>(null);
-    
+
     // Track the current upload to prevent stale updates
     const currentUploadRef = useRef<string | null>(null);
 
@@ -26,7 +26,7 @@ const useImageLoader = (onReset?: () => void) => {
                 setImageName(file.name);
                 onReset?.();
             }
-            
+
             try {
                 const id = await uploadImage(file);
                 // Only update imageId if this upload is still current
@@ -60,7 +60,7 @@ const useImageLoader = (onReset?: () => void) => {
     const loadImageFromDataUrl = (dataUrl: string, name?: string) => {
         // Clear any pending uploads since we're loading from data URL
         currentUploadRef.current = null;
-        
+
         const img = new Image();
         img.onload = () => {
             setImage(img);
