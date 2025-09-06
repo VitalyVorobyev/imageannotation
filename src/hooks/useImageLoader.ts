@@ -1,18 +1,27 @@
 import { useState } from 'react';
 import { type AnnotationBundle, type Shape } from '../types';
+import { uploadImage } from '../utils/api';
 
 const useImageLoader = (onReset?: () => void) => {
     const [image, setImage] = useState<HTMLImageElement | null>(null);
     const [imageName, setImageName] = useState<string | undefined>(undefined);
+    const [imageId, setImageId] = useState<string | null>(null);
 
     const loadImageFromFile = (file: File) => {
         if (!file || !file.type.startsWith('image/')) return;
 
+        setImageId(null);
         const img = new Image();
-        img.onload = () => {
+        img.onload = async () => {
             setImage(img);
             setImageName(file.name);
             onReset?.();
+            try {
+                const id = await uploadImage(file);
+                setImageId(id);
+            } catch (err) {
+                console.error('Failed to upload image', err);
+            }
         };
 
         img.onerror = () => {
@@ -32,6 +41,7 @@ const useImageLoader = (onReset?: () => void) => {
         img.onload = () => {
             setImage(img);
             setImageName(name);
+            setImageId(null);
             onReset?.();
         };
         img.src = dataUrl;
@@ -91,6 +101,7 @@ const useImageLoader = (onReset?: () => void) => {
     return {
         image,
         imageName,
+        imageId,
         loadImageFromFile,
         loadImageFromDataUrl,
         handleFileInput,

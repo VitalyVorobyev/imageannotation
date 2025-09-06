@@ -11,6 +11,7 @@ import useImageLoader from '../../hooks/useImageLoader';
 import useShapeManipulation from '../../hooks/useShapeManipulation';
 import usePanZoom from '../../hooks/usePanZoom';
 import hitTest from '../../utils/hitTesting';
+import { requestFeatureDetection } from '../../utils/api';
 
 import { getMousePoint, screenToImage } from '../../utils/coordinates';
 import { exportJson } from '../../utils/fileHandlers';
@@ -43,9 +44,26 @@ const ImageAnnotator = () => {
     } = useShapeManipulation();
 
     const {
-        image, imageName,
+        image, imageName, imageId,
         handleFileInput, handleDrop, handleDragOver, handleImportJson
     } = useImageLoader(() => setShapes([]));
+
+    const [featureType, setFeatureType] = useState('faces');
+
+    const detectFeatures = async () => {
+        if (!imageId) {
+            alert('No image uploaded');
+            return;
+        }
+        try {
+            const result = await requestFeatureDetection(imageId, featureType);
+            // For now, simply log the result. Rendering can be added later.
+            console.log('Detected features', result);
+        } catch (err) {
+            console.error('Feature detection failed', err);
+            alert('Feature detection failed');
+        }
+    };
 
     const {
         beginOp, endOp, undo, redo, cancelOp, canUndo, canRedo
@@ -280,6 +298,10 @@ const ImageAnnotator = () => {
                 onImportJson={(e) => handleImportJson(e, setShapes)}
                 onExportJson={() => exportJson(shapes, image, imageName, false)}
                 onExportBundle={() => exportJson(shapes, image, imageName, true)}
+                featureType={featureType}
+                onFeatureTypeChange={setFeatureType}
+                onDetectFeatures={detectFeatures}
+                canDetect={Boolean(imageId)}
             />
 
             <Canvas
