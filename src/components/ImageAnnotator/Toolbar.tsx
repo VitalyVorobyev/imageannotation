@@ -60,9 +60,9 @@ const Toolbar = ({
                 <ToolButton active={tool === "bezier"} onClick={() => setTool("bezier")} title="Bezier (B)">Bezier</ToolButton>
                 <ToolButton active={tool === "point"} onClick={() => setTool("point")} title="Point (O)">Point</ToolButton>
                 <div className={styles.divider} />
-                <ToolButton onClick={onZoomToFit} title="Zoom to Fit">Fit</ToolButton>
-                <ToolButton onClick={onZoomIn} title="Zoom In">＋</ToolButton>
-                <ToolButton onClick={onZoomOut} title="Zoom Out">－</ToolButton>
+                <ToolButton onClick={onZoomToFit} title="Zoom to Fit">⛶</ToolButton>
+                <ToolButton onClick={onZoomIn} title="Zoom In">🔍➕</ToolButton>
+                <ToolButton onClick={onZoomOut} title="Zoom Out">🔍➖</ToolButton>
             </div>
             <div className={styles.spacer} />
             <div className={styles.group}>
