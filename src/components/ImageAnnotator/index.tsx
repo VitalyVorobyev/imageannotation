@@ -360,6 +360,7 @@ const ImageAnnotator = () => {
             <StatusBar
                 image={image}
                 imageName={imageName}
+                imageId={imageId}
             />
         </div>
     );
