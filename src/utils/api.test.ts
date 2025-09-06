@@ -8,7 +8,7 @@ afterEach(() => {
     globalThis.fetch = originalFetch;
 });
 
-test('uploadImage posts file and returns id', async () => {
+test('uploadImage posts file and returns image_id', async () => {
     const file = new File(['data'], 'test.png', { type: 'image/png' });
     const expectedId = 'abc123';
     globalThis.fetch = async (input, init) => {
@@ -18,7 +18,7 @@ test('uploadImage posts file and returns id', async () => {
         const body = req.body as FormData;
         const uploaded = body.get('file') as File;
         assert.equal(uploaded.name, 'test.png');
-        return new Response(JSON.stringify({ id: expectedId }), { status: 200 });
+        return new Response(JSON.stringify({ image_id: expectedId, bytes: 12, filename: 'test.png' }), { status: 200 });
     };
     const id = await uploadImage(file);
     assert.equal(id, expectedId);
