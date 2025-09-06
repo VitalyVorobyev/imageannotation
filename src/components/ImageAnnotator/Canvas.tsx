@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { type BezierShape, type Point, type PolylineShape, type RectShape, type Shape } from '../../types';
+import { type BezierShape, type Point, type PolylineShape, type RectShape, type Shape, type PointShape } from '../../types';
 import AnnotationOverlay from './AnnotationOverlay';
 import styles from './Canvas.module.css';
 
@@ -12,15 +12,13 @@ interface CanvasProps {
     draftRect: RectShape | null;
     draftPoly: PolylineShape | null;
     draftBezier: BezierShape | null;
-    hover: { id: string | null; handle?: string} | null;
+    detections: PointShape[];
     width: number;
     height: number;
     onPointerDown: (e: React.PointerEvent) => void;
     onPointerMove: (e: React.PointerEvent) => void;
     onPointerUp: (e: React.PointerEvent) => void;
     onWheel: (e: React.WheelEvent) => void;
-    onDragOver: (e: React.DragEvent) => void;
-    onDrop: (e: React.DragEvent) => void;
 };
 
 const Canvas = ({
@@ -32,14 +30,13 @@ const Canvas = ({
     draftRect,
     draftPoly,
     draftBezier,
+    detections,
     width,
     height,
     onPointerDown,
     onPointerMove,
     onPointerUp,
-    onWheel,
-    onDragOver,
-    onDrop
+    onWheel
 }: CanvasProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -78,12 +75,11 @@ const Canvas = ({
             ref={containerRef}
             className={styles.container}
             onWheel={onWheel}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
         >
             <canvas ref={canvasRef} className={styles.canvas} />
             <AnnotationOverlay
                 shapes={shapes}
+                detections={detections}
                 selectedId={selectedId}
                 draftRect={draftRect}
                 draftPoly={draftPoly}
