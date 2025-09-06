@@ -80,6 +80,7 @@ const useImageLoader = (onReset?: () => void) => {
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         const file = e.dataTransfer?.files?.[0];
         if (file) {
             loadImageFromFile(file);
