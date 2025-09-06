@@ -18,6 +18,10 @@ interface ToolbarProps {
     onImportJson: (ev: React.ChangeEvent<HTMLInputElement>) => void;
     onExportJson: () => void;
     onExportBundle: () => void;
+    featureType: string;
+    onFeatureTypeChange: (val: string) => void;
+    onDetectFeatures: () => void;
+    canDetect: boolean;
 };
 
 const Toolbar = ({
@@ -34,7 +38,11 @@ const Toolbar = ({
     onLoadImage,
     onImportJson,
     onExportJson,
-    onExportBundle
+    onExportBundle,
+    featureType,
+    onFeatureTypeChange,
+    onDetectFeatures,
+    canDetect
 }: ToolbarProps) => {
     return (
         <div className={styles.toolbar}>
@@ -66,6 +74,14 @@ const Toolbar = ({
                 </label>
                 <ToolButton onClick={onExportJson}>Export JSON</ToolButton>
                 <ToolButton onClick={onExportBundle}>Export Bundle</ToolButton>
+                <input
+                    className={styles.featureInput}
+                    type="text"
+                    value={featureType}
+                    onChange={(e) => onFeatureTypeChange(e.target.value)}
+                    placeholder="Feature"
+                />
+                <ToolButton onClick={onDetectFeatures} disabled={!canDetect}>Detect</ToolButton>
                 <div className={styles.zoomInfo}>Zoom: {(zoom * 100).toFixed(0)}%</div>
             </div>
         </div>

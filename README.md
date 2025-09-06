@@ -16,6 +16,9 @@ An interactive React + TypeScript application for annotating images with sha
 - **Import/export**
   - Load images via file dialog or drag‑and‑drop
   - Export annotations as JSON, optionally embedding the source image (`annotation.json` or `annotation_bundle.json`)
+- **Backend integration**
+  - Upload images to an external image store service
+  - Request feature detection by image ID and feature type
 
 ## Getting Started
 
