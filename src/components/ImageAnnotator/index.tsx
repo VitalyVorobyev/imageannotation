@@ -5,6 +5,7 @@ import { type Tool } from '../../types';
 import Toolbar from './Toolbar';
 import Canvas from './Canvas';
 import StatusBar from './StatusBar';
+import PatternPanel from './PatternPanel';
 import styles from './ImageAnnotator.module.css';
 import useHistory from '../../hooks/useHistory';
 import useImageLoader from '../../hooks/useImageLoader';
@@ -50,6 +51,7 @@ const ImageAnnotator = () => {
 
     const [pattern, setPattern] = useState('chessboard');
     const [patternParams, setPatternParams] = useState<Record<string, unknown>>({ rows: 7, cols: 7 });
+    const [showParams, setShowParams] = useState(false);
 
     const handlePatternChange = (p: string) => {
         setPattern(p);
@@ -320,32 +322,40 @@ const ImageAnnotator = () => {
                 onExportJson={() => exportJson(shapes, image, imageName, false)}
                 onExportBundle={() => exportJson(shapes, image, imageName, true)}
                 pattern={pattern}
-                params={patternParams}
                 onPatternChange={handlePatternChange}
-                onParamsChange={setPatternParams}
                 onDetectFeatures={detectFeatures}
+                onToggleParams={() => setShowParams((v) => !v)}
                 canDetect={Boolean(imageId)}
             />
 
-            <Canvas
-                image={image}
-                zoom={zoom}
-                pan={pan}
-                shapes={shapes}
-                selectedId={selectedId}
-                draftRect={draftRect}
-                draftPoly={draftPoly}
-                draftBezier={draftBezier}
-                hover={hover}
-                width={size.w}
-                height={size.h}
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onWheel={handleWheel}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-            />
+            <div className={styles.content}>
+                <Canvas
+                    image={image}
+                    zoom={zoom}
+                    pan={pan}
+                    shapes={shapes}
+                    selectedId={selectedId}
+                    draftRect={draftRect}
+                    draftPoly={draftPoly}
+                    draftBezier={draftBezier}
+                    hover={hover}
+                    width={size.w}
+                    height={size.h}
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onWheel={handleWheel}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                />
+                <PatternPanel
+                    visible={showParams}
+                    pattern={pattern}
+                    params={patternParams}
+                    onParamsChange={setPatternParams}
+                    onClose={() => setShowParams(false)}
+                />
+            </div>
 
             <StatusBar
                 image={image}
