@@ -19,42 +19,39 @@ const useImageLoader = (onReset?: () => void) => {
 
         setImageId(null);
         const img = new Image();
-        img.onload = async () => {
-            // Only update if this is still the current upload
+
+        img.onload = () => {
             if (currentUploadRef.current === uploadToken) {
                 setImage(img);
                 setImageName(file.name);
                 onReset?.();
             }
-
-            try {
-                const id = await uploadImage(file);
-                // Only update imageId if this upload is still current
-                if (currentUploadRef.current === uploadToken) {
-                    setImageId(id);
-                }
-            } catch (err) {
-                console.error('Failed to upload image', err);
-                // Only show error if this upload is still current
-                if (currentUploadRef.current === uploadToken) {
-                    // Error handling for current upload only
-                }
-            }
+            URL.revokeObjectURL(img.src);
         };
 
         img.onerror = () => {
-            // Only show error if this upload is still current
             if (currentUploadRef.current === uploadToken) {
                 alert("Failed to load image. Please try a different file.");
             }
+            URL.revokeObjectURL(img.src);
         };
 
-        // Use FileReader to support environments where object URLs are restricted
-        const reader = new FileReader();
-        reader.onload = () => {
-            img.src = String(reader.result);
-        };
-        reader.readAsDataURL(file);
+        // Start reading the image immediately via object URL
+        img.src = URL.createObjectURL(file);
+
+        // Upload in the background
+        uploadImage(file)
+            .then((id) => {
+                if (currentUploadRef.current === uploadToken) {
+                    setImageId(id);
+                }
+            })
+            .catch((err) => {
+                console.error('Failed to upload image', err);
+                if (currentUploadRef.current === uploadToken) {
+                    // Error handling for current upload only
+                }
+            });
     };
 
     const loadImageFromDataUrl = (dataUrl: string, name?: string) => {
@@ -85,7 +82,7 @@ const useImageLoader = (onReset?: () => void) => {
         e.preventDefault();
         const file = e.dataTransfer?.files?.[0];
         if (file) {
-        loadImageFromFile(file);
+            loadImageFromFile(file);
         }
     };
 
