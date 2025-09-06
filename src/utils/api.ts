@@ -11,15 +11,25 @@ export async function uploadImage(file: File): Promise<string> {
     if (!res.ok) {
         throw new Error(`Failed to upload image: ${res.status} ${res.statusText}`);
     }
-    const data = await res.json() as { id: string };
-    return data.id;
+    const data = await res.json() as { image_id: string };
+    return data.image_id;
 }
 
-export async function requestFeatureDetection(imageId: string, featureType: string): Promise<unknown> {
-    const res = await fetch(`${FEATURE_DETECTION_SERVICE_URL}/detect`, {
+export async function requestFeatureDetection(
+    imageId: string,
+    pattern: string,
+    params: Record<string, unknown> = {},
+    returnOverlay = false,
+): Promise<unknown> {
+    const res = await fetch(`${FEATURE_DETECTION_SERVICE_URL}/detect_pattern`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_id: imageId, feature_type: featureType }),
+        body: JSON.stringify({
+            image_id: imageId,
+            pattern,
+            params,
+            return_overlay: returnOverlay,
+        }),
     });
     if (!res.ok) {
         throw new Error(`Feature detection failed: ${res.status} ${res.statusText}`);

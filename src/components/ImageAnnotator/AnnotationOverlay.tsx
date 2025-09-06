@@ -1,11 +1,13 @@
 import React from 'react';
-import { type BezierShape, type Point, type PolylineShape, type RectShape, type Shape } from '../../types';
+import { type BezierShape, type Point, type PolylineShape, type RectShape, type Shape, type PointShape } from '../../types';
 import ShapeRenderer from '../shapes/ShapeRenderer';
 import DraftShapeRenderer from '../shapes/DraftShapeRenderer';
+import PointRenderer from '../shapes/PointRenderer';
 import styles from './AnnotationOverlay.module.css';
 
 interface AnnotationOverlayProps {
     shapes: Shape[];
+    detections: PointShape[];
     selectedId: string | null;
     draftRect: RectShape | null;
     draftPoly: PolylineShape | null;
@@ -21,6 +23,7 @@ interface AnnotationOverlayProps {
 
 const AnnotationOverlay = ({
     shapes,
+    detections,
     selectedId,
     draftRect,
     draftPoly,
@@ -57,6 +60,15 @@ const AnnotationOverlay = ({
                 pan={pan}
                 imageToScreen={imageToScreen}
             />
+
+            {/* Detected features (non-interactive) */}
+            {detections.length > 0 && (
+                <g style={{ pointerEvents: 'none' }}>
+                    {detections.map(pt => (
+                        <PointRenderer key={pt.id} shape={pt} imageToScreen={imageToScreen} readOnly />
+                    ))}
+                </g>
+            )}
 
             {/* Committed shapes */}
             {shapes.map(shape => (

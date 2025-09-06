@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-import { type Tool } from '../../types';
+import { type Tool, type PointShape } from '../../types';
 
 import Toolbar from './Toolbar';
 import Canvas from './Canvas';
 import StatusBar from './StatusBar';
+import PatternPanel from './PatternPanel';
 import styles from './ImageAnnotator.module.css';
 import useHistory from '../../hooks/useHistory';
 import useImageLoader from '../../hooks/useImageLoader';
@@ -34,21 +35,47 @@ const ImageAnnotator = () => {
 
     const {
         shapes, setShapes, selectedId, setSelectedId,
-        draftRect, draftPoly, draftBezier, hover,
+        draftRect, draftPoly, draftBezier,
         createRect, updateDraftRect, finalizeDraftRect,
         createPolyline, finalizeDraftPoly,
         createBezier, finalizeDraftBezier,
         createPoint, cancelDrafts,
-        startDrag, updateDrag, endDrag, updateHover,
+        startDrag, updateDrag, endDrag,
         deleteSelected, moveSelectedByArrows
     } = useShapeManipulation();
 
     const {
         image, imageName, imageId,
         handleFileInput, handleDrop, handleDragOver, handleImportJson
-    } = useImageLoader(() => setShapes([]));
+    } = useImageLoader(() => {
+        setShapes([]);
+        setDetections([]);
+    });
 
-    const [featureType, setFeatureType] = useState('faces');
+    const [pattern, setPattern] = useState('chessboard');
+    const [patternParams, setPatternParams] = useState<Record<string, unknown>>({ rows: 7, cols: 7 });
+    const [showParams, setShowParams] = useState(false);
+    const [detections, setDetections] = useState<PointShape[]>([]);
+
+    const handlePatternChange = (p: string) => {
+        setPattern(p);
+        switch (p) {
+            case 'charuco':
+                setPatternParams({ squares_x: 5, squares_y: 7, square_length: 1.0, marker_length: 0.5, dictionary: 'DICT_4X4_50' });
+                break;
+            case 'circle_grid':
+                setPatternParams({ rows: 4, cols: 5, symmetric: true });
+                break;
+            case 'chessboard':
+                setPatternParams({ rows: 7, cols: 7 });
+                break;
+            case 'apriltag':
+                setPatternParams({ dictionary: 'DICT_APRILTAG_36h11' });
+                break;
+            default:
+                setPatternParams({});
+        }
+    };
 
     const detectFeatures = async () => {
         if (!imageId) {
@@ -56,9 +83,16 @@ const ImageAnnotator = () => {
             return;
         }
         try {
-            const result = await requestFeatureDetection(imageId, featureType);
-            // For now, simply log the result. Rendering can be added later.
-            console.log('Detected features', result);
+            const result = await requestFeatureDetection(imageId, pattern, patternParams) as { points: Array<{ x: number; y: number; id?: number }> };
+            const pts: PointShape[] = result.points.map((p, i) => ({
+                id: `det-${i}`,
+                type: 'point',
+                p: { x: p.x, y: p.y },
+                stroke: '#0ea5e9',
+                fill: '#0ea5e9',
+                interestId: p.id ?? i + 1
+            }));
+            setDetections(pts);
         } catch (err) {
             console.error('Feature detection failed', err);
             alert('Feature detection failed');
@@ -248,10 +282,7 @@ const ImageAnnotator = () => {
             return;
         }
 
-        // Hover feedback in select mode
-        if (tool === "select") {
-            updateHover(img, 8 / zoom);
-        }
+        // Hover feedback removed
     };
 
     const onPointerUp = () => {
@@ -282,6 +313,8 @@ const ImageAnnotator = () => {
                 e.preventDefault();
                 setToolAndFinalize("select");
             }}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
         >
             <Toolbar
                 tool={tool}
@@ -298,35 +331,44 @@ const ImageAnnotator = () => {
                 onImportJson={(e) => handleImportJson(e, setShapes)}
                 onExportJson={() => exportJson(shapes, image, imageName, false)}
                 onExportBundle={() => exportJson(shapes, image, imageName, true)}
-                featureType={featureType}
-                onFeatureTypeChange={setFeatureType}
+                pattern={pattern}
+                onPatternChange={handlePatternChange}
                 onDetectFeatures={detectFeatures}
+                onToggleParams={() => setShowParams((v) => !v)}
                 canDetect={Boolean(imageId)}
             />
 
-            <Canvas
-                image={image}
-                zoom={zoom}
-                pan={pan}
-                shapes={shapes}
-                selectedId={selectedId}
-                draftRect={draftRect}
-                draftPoly={draftPoly}
-                draftBezier={draftBezier}
-                hover={hover}
-                width={size.w}
-                height={size.h}
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onWheel={handleWheel}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-            />
+            <div className={styles.content}>
+                <Canvas
+                    image={image}
+                    zoom={zoom}
+                    pan={pan}
+                    shapes={shapes}
+                    detections={detections}
+                    selectedId={selectedId}
+                    draftRect={draftRect}
+                    draftPoly={draftPoly}
+                    draftBezier={draftBezier}
+                    width={size.w}
+                    height={size.h}
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onWheel={handleWheel}
+                />
+                <PatternPanel
+                    visible={showParams}
+                    pattern={pattern}
+                    params={patternParams}
+                    onParamsChange={setPatternParams}
+                    onClose={() => setShowParams(false)}
+                />
+            </div>
 
             <StatusBar
                 image={image}
                 imageName={imageName}
+                imageId={imageId}
             />
         </div>
     );
