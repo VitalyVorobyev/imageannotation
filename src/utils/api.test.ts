@@ -30,7 +30,7 @@ test('requestFeatureDetection sends correct payload', async () => {
     const params = { rows: 7, cols: 7 };
     const response = { points: [] };
     globalThis.fetch = async (input, init) => {
-        assert.equal(input, 'http://localhost:8001/detect_pattern');
+        assert.equal(input, 'http://localhost:8080/detect_pattern');
         const req = init as RequestInit;
         assert.equal(req.method, 'POST');
         const headers = req.headers as Record<string, string>;
