@@ -26,18 +26,24 @@ test('uploadImage posts file and returns id', async () => {
 
 test('requestFeatureDetection sends correct payload', async () => {
     const imageId = 'img1';
-    const featureType = 'faces';
-    const response = { features: [] };
+    const pattern = 'chessboard';
+    const params = { rows: 7, cols: 7 };
+    const response = { points: [] };
     globalThis.fetch = async (input, init) => {
-        assert.equal(input, 'http://localhost:8001/detect');
+        assert.equal(input, 'http://localhost:8001/detect_pattern');
         const req = init as RequestInit;
         assert.equal(req.method, 'POST');
         const headers = req.headers as Record<string, string>;
         assert.equal(headers['Content-Type'], 'application/json');
         const body = JSON.parse(String(req.body));
-        assert.deepEqual(body, { image_id: imageId, feature_type: featureType });
+        assert.deepEqual(body, {
+            image_id: imageId,
+            pattern,
+            params,
+            return_overlay: false,
+        });
         return new Response(JSON.stringify(response), { status: 200 });
     };
-    const data = await requestFeatureDetection(imageId, featureType);
+    const data = await requestFeatureDetection(imageId, pattern, params);
     assert.deepEqual(data, response);
 });

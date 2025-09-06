@@ -48,7 +48,28 @@ const ImageAnnotator = () => {
         handleFileInput, handleDrop, handleDragOver, handleImportJson
     } = useImageLoader(() => setShapes([]));
 
-    const [featureType, setFeatureType] = useState('faces');
+    const [pattern, setPattern] = useState('chessboard');
+    const [patternParams, setPatternParams] = useState<Record<string, unknown>>({ rows: 7, cols: 7 });
+
+    const handlePatternChange = (p: string) => {
+        setPattern(p);
+        switch (p) {
+            case 'charuco':
+                setPatternParams({ squares_x: 5, squares_y: 7, square_length: 1.0, marker_length: 0.5, dictionary: 'DICT_4X4_50' });
+                break;
+            case 'circle_grid':
+                setPatternParams({ rows: 4, cols: 5, symmetric: true });
+                break;
+            case 'chessboard':
+                setPatternParams({ rows: 7, cols: 7 });
+                break;
+            case 'apriltag':
+                setPatternParams({ dictionary: 'DICT_APRILTAG_36h11' });
+                break;
+            default:
+                setPatternParams({});
+        }
+    };
 
     const detectFeatures = async () => {
         if (!imageId) {
@@ -56,7 +77,7 @@ const ImageAnnotator = () => {
             return;
         }
         try {
-            const result = await requestFeatureDetection(imageId, featureType);
+            const result = await requestFeatureDetection(imageId, pattern, patternParams);
             // For now, simply log the result. Rendering can be added later.
             console.log('Detected features', result);
         } catch (err) {
@@ -298,8 +319,10 @@ const ImageAnnotator = () => {
                 onImportJson={(e) => handleImportJson(e, setShapes)}
                 onExportJson={() => exportJson(shapes, image, imageName, false)}
                 onExportBundle={() => exportJson(shapes, image, imageName, true)}
-                featureType={featureType}
-                onFeatureTypeChange={setFeatureType}
+                pattern={pattern}
+                params={patternParams}
+                onPatternChange={handlePatternChange}
+                onParamsChange={setPatternParams}
                 onDetectFeatures={detectFeatures}
                 canDetect={Boolean(imageId)}
             />

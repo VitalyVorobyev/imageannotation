@@ -18,8 +18,10 @@ interface ToolbarProps {
     onImportJson: (ev: React.ChangeEvent<HTMLInputElement>) => void;
     onExportJson: () => void;
     onExportBundle: () => void;
-    featureType: string;
-    onFeatureTypeChange: (val: string) => void;
+    pattern: string;
+    params: Record<string, unknown>;
+    onPatternChange: (val: string) => void;
+    onParamsChange: (params: Record<string, unknown>) => void;
     onDetectFeatures: () => void;
     canDetect: boolean;
 };
@@ -39,11 +41,120 @@ const Toolbar = ({
     onImportJson,
     onExportJson,
     onExportBundle,
-    featureType,
-    onFeatureTypeChange,
+    pattern,
+    params,
+    onPatternChange,
+    onParamsChange,
     onDetectFeatures,
     canDetect
 }: ToolbarProps) => {
+    const updateParam = (key: string, value: unknown) => {
+        onParamsChange({ ...params, [key]: value });
+    };
+
+    const renderParamInputs = () => {
+        switch (pattern) {
+            case 'charuco':
+                return (
+                    <>
+                        <input
+                            className={styles.paramInput}
+                            type="number"
+                            value={(params.squares_x as number) ?? ''}
+                            onChange={(e) => updateParam('squares_x', parseInt(e.target.value, 10))}
+                            placeholder="Squares X"
+                        />
+                        <input
+                            className={styles.paramInput}
+                            type="number"
+                            value={(params.squares_y as number) ?? ''}
+                            onChange={(e) => updateParam('squares_y', parseInt(e.target.value, 10))}
+                            placeholder="Squares Y"
+                        />
+                        <input
+                            className={styles.paramInput}
+                            type="number"
+                            value={(params.square_length as number) ?? ''}
+                            onChange={(e) => updateParam('square_length', parseFloat(e.target.value))}
+                            placeholder="Square Len"
+                        />
+                        <input
+                            className={styles.paramInput}
+                            type="number"
+                            value={(params.marker_length as number) ?? ''}
+                            onChange={(e) => updateParam('marker_length', parseFloat(e.target.value))}
+                            placeholder="Marker Len"
+                        />
+                        <input
+                            className={styles.paramInput}
+                            type="text"
+                            value={(params.dictionary as string) ?? ''}
+                            onChange={(e) => updateParam('dictionary', e.target.value)}
+                            placeholder="Dictionary"
+                        />
+                    </>
+                );
+            case 'circle_grid':
+                return (
+                    <>
+                        <input
+                            className={styles.paramInput}
+                            type="number"
+                            value={(params.rows as number) ?? ''}
+                            onChange={(e) => updateParam('rows', parseInt(e.target.value, 10))}
+                            placeholder="Rows"
+                        />
+                        <input
+                            className={styles.paramInput}
+                            type="number"
+                            value={(params.cols as number) ?? ''}
+                            onChange={(e) => updateParam('cols', parseInt(e.target.value, 10))}
+                            placeholder="Cols"
+                        />
+                        <label className={styles.checkboxLabel}>
+                            Symmetric
+                            <input
+                                type="checkbox"
+                                checked={Boolean(params.symmetric)}
+                                onChange={(e) => updateParam('symmetric', e.target.checked)}
+                            />
+                        </label>
+                    </>
+                );
+            case 'chessboard':
+                return (
+                    <>
+                        <input
+                            className={styles.paramInput}
+                            type="number"
+                            value={(params.rows as number) ?? ''}
+                            onChange={(e) => updateParam('rows', parseInt(e.target.value, 10))}
+                            placeholder="Rows"
+                        />
+                        <input
+                            className={styles.paramInput}
+                            type="number"
+                            value={(params.cols as number) ?? ''}
+                            onChange={(e) => updateParam('cols', parseInt(e.target.value, 10))}
+                            placeholder="Cols"
+                        />
+                    </>
+                );
+            case 'apriltag':
+                return (
+                    <input
+                        className={styles.paramInput}
+                        type="text"
+                        value={(params.dictionary as string) ?? ''}
+                        onChange={(e) => updateParam('dictionary', e.target.value)}
+                        placeholder="Dictionary"
+                    />
+                );
+            default:
+                return null;
+        }
+    };
+
     return (
         <div className={styles.toolbar}>
             <div className={styles.group}>
@@ -74,13 +185,17 @@ const Toolbar = ({
                 </label>
                 <ToolButton onClick={onExportJson}>Export JSON</ToolButton>
                 <ToolButton onClick={onExportBundle}>Export Bundle</ToolButton>
-                <input
+                <select
                     className={styles.featureInput}
-                    type="text"
-                    value={featureType}
-                    onChange={(e) => onFeatureTypeChange(e.target.value)}
-                    placeholder="Feature"
-                />
+                    value={pattern}
+                    onChange={(e) => onPatternChange(e.target.value)}
+                >
+                    <option value="chessboard">Chessboard</option>
+                    <option value="charuco">ChArUco</option>
+                    <option value="circle_grid">Circle Grid</option>
+                    <option value="apriltag">AprilTag</option>
+                </select>
+                {renderParamInputs()}
                 <ToolButton onClick={onDetectFeatures} disabled={!canDetect}>Detect</ToolButton>
                 <div className={styles.zoomInfo}>Zoom: {(zoom * 100).toFixed(0)}%</div>
             </div>
