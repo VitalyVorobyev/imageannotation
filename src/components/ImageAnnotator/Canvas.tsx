@@ -65,8 +65,8 @@ const Canvas = ({
         const y = pan.y;
         const w = iw * zoom;
         const h = ih * zoom;
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
+        ctx.imageSmoothingEnabled = zoom < 1;
+        ctx.imageSmoothingQuality = zoom < 1 ? "high" : "low";
         ctx.drawImage(image, 0, 0, iw, ih, x, y, w, h);
     }, [image, zoom, pan, width, height]);
 
