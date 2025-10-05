@@ -1,0 +1,194 @@
+openapi: 3.0.3
+info:
+  title: Image Annotation Service API
+  description: API surface used by the Image Annotator web client for project and annotation management.
+  version: 0.1.0
+servers:
+  - url: https://api.example.com
+    description: Production
+  - url: https://staging-api.example.com
+    description: Staging
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags:
+        - Observability
+      responses:
+        '200':
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /annotations:
+    get:
+      summary: List annotations for a project
+      tags:
+        - Annotations
+      parameters:
+        - in: query
+          name: projectId
+          description: Identifier of the project whose annotations should be returned.
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: Cursor token from a previous response for pagination.
+      responses:
+        '200':
+          description: Annotations retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnotationPage'
+    post:
+      summary: Create a new annotation
+      tags:
+        - Annotations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewAnnotation'
+      responses:
+        '201':
+          description: Annotation created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Annotation'
+  /annotations/{annotationId}:
+    patch:
+      summary: Update an existing annotation
+      tags:
+        - Annotations
+      parameters:
+        - in: path
+          name: annotationId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAnnotation'
+      responses:
+        '200':
+          description: Annotation updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Annotation'
+    delete:
+      summary: Delete an annotation
+      tags:
+        - Annotations
+      parameters:
+        - in: path
+          name: annotationId
+          schema:
+            type: string
+          required: true
+      responses:
+        '204':
+          description: Annotation deleted.
+components:
+  schemas:
+    Annotation:
+      type: object
+      required:
+        - id
+        - projectId
+        - assetId
+        - geometry
+        - labels
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: ann_123
+        projectId:
+          type: string
+          example: proj_456
+        assetId:
+          type: string
+          example: asset_789
+        geometry:
+          type: object
+          additionalProperties: true
+        labels:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AnnotationPage:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation'
+        nextCursor:
+          type: string
+          nullable: true
+    NewAnnotation:
+      type: object
+      required:
+        - projectId
+        - assetId
+        - geometry
+        - labels
+      properties:
+        projectId:
+          type: string
+        assetId:
+          type: string
+        geometry:
+          type: object
+          additionalProperties: true
+        labels:
+          type: array
+          items:
+            type: string
+    UpdateAnnotation:
+      type: object
+      properties:
+        geometry:
+          type: object
+          additionalProperties: true
+        labels:
+          type: array
+          items:
+            type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
