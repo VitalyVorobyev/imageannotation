@@ -123,7 +123,7 @@ jobs:
       # --- SBOM & Signing ---
       - name: Generate SBOM (SPDX JSON) for image@digest
         id: sbom
-        uses: anchore/syft-action@v0.7.0
+        uses: anchore/sbom-action@v0.20.0
         with:
           image: ${{ env.REGISTRY }}/${{ github.repository }}@${{ steps.build.outputs.digest }}
           format: spdx-json
