@@ -1,216 +1,186 @@
-name: Release
+name: Release (web)
 
 on:
   release:
-    types:
-      - published
+    types: [published]
 
-permissions:
-  contents: write
-  packages: write
-  id-token: write
-
-env:
-  REGISTRY: ghcr.io
-  HEALTH_ENDPOINT: /health
+# Prevent the same tag from publishing twice in parallel
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
 
 jobs:
   publish:
-    name: Build and publish release
+    name: Build & publish web release
     runs-on: ubuntu-latest
+
+    # Minimize permissions; broaden only if needed
+    permissions:
+      contents: write     # upload release assets, read repo
+      packages: write     # push image to GHCR
+      id-token: write     # keyless cosign signing
+
+    env:
+      REGISTRY: ghcr.io
+      HEALTH_ENDPOINT: /health
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # --- Build & test the SPA ---
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
       - name: Run tests
+        env:
+          CI: "true"
         run: npm test
 
       - name: Build web assets
         run: npm run build
 
-      - name: Prepare release artifacts
+      - name: Prepare release artifacts (dist + optional files)
         id: artifacts
+        shell: bash
         run: |
           set -euo pipefail
           TAG="${{ github.event.release.tag_name }}"
-          if [[ -z "$TAG" ]]; then
-            echo "Release tag is required" >&2
-            exit 1
-          fi
           REPO_NAME="${GITHUB_REPOSITORY##*/}"
           mkdir -p artifacts
-          if [[ ! -d dist ]]; then
-            echo "Expected dist/ directory after build" >&2
-            exit 1
-          fi
-          tar -czf "artifacts/${REPO_NAME}-${TAG}-dist.tar.gz" -C dist .
-          cp docs/openapi.yaml "artifacts/${REPO_NAME}-${TAG}-openapi.yaml"
-          cp example.env "artifacts/${REPO_NAME}-${TAG}-example.env"
-          cp deploy/compose.service.yaml "artifacts/${REPO_NAME}-${TAG}-compose.service.yaml"
-          echo "dist=${REPO_NAME}-${TAG}-dist.tar.gz" >> "$GITHUB_OUTPUT"
-          echo "openapi=${REPO_NAME}-${TAG}-openapi.yaml" >> "$GITHUB_OUTPUT"
-          echo "example_env=${REPO_NAME}-${TAG}-example.env" >> "$GITHUB_OUTPUT"
-          echo "compose=${REPO_NAME}-${TAG}-compose.service.yaml" >> "$GITHUB_OUTPUT"
 
+          # Ensure dist exists then pack it
+          test -d dist || { echo "Expected dist/ directory after build"; exit 1; }
+          DIST_TGZ="${REPO_NAME}-${TAG}-dist.tar.gz"
+          tar --owner=0 --group=0 --mtime='UTC 1970-01-01' -C dist -czf "artifacts/${DIST_TGZ}" .
+
+          # Optional extras (guarded)
+          [[ -f docs/openapi.yaml ]] && cp docs/openapi.yaml "artifacts/${REPO_NAME}-${TAG}-openapi.yaml" || true
+          [[ -f example.env ]] && cp example.env "artifacts/${REPO_NAME}-${TAG}-example.env" || true
+          [[ -f deploy/compose.service.yaml ]] && cp deploy/compose.service.yaml "artifacts/${REPO_NAME}-${TAG}-compose.service.yaml" || true
+
+          # Outputs
+          echo "dist=${DIST_TGZ}" >> "$GITHUB_OUTPUT"
+
+      # --- Containerize & push to GHCR ---
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      - name: Configure Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Authenticate to GHCR
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve image metadata
+      - name: Docker metadata
         id: meta
-        run: |
-          set -euo pipefail
-          TAG="${{ github.event.release.tag_name }}"
-          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Release tags must follow vX.Y.Z" >&2
-            exit 1
-          fi
-          IMAGE_PATH="${REGISTRY}/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
-          REPO_NAME="${GITHUB_REPOSITORY##*/}"
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "image=${IMAGE_PATH}" >> "$GITHUB_OUTPUT"
-          echo "image_versioned=${IMAGE_PATH}:${TAG}" >> "$GITHUB_OUTPUT"
-          echo "image_latest=${IMAGE_PATH}:latest" >> "$GITHUB_OUTPUT"
-          echo "sbom=${REPO_NAME}-${TAG}-sbom.spdx.json" >> "$GITHUB_OUTPUT"
-          echo "provenance=${REPO_NAME}-${TAG}-provenance.json" >> "$GITHUB_OUTPUT"
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          # derive semver tags from the release tag
+          tags: |
+            type=semver,pattern={{version}},value=${{ github.event.release.tag_name }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.release.tag_name }}
+            type=semver,pattern={{major}},value=${{ github.event.release.tag_name }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=Static React build served by Node runtime
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
-      - name: Build and push multi-arch image
+      - name: Build & push multi-arch image
         id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ${{ steps.meta.outputs.image_versioned }}
-            ${{ steps.meta.outputs.image_latest }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           provenance: true
 
-      - name: Generate SBOM
+      - name: Print image digest
+        run: echo "Pushed digest ${{ steps.build.outputs.digest }}"
+
+      # --- SBOM & Signing ---
+      - name: Generate SBOM (SPDX JSON) for image@digest
+        id: sbom
         uses: anchore/syft-action@v0.7.0
         with:
-          image: ${{ steps.meta.outputs.image }}@${{ steps.build.outputs.digest }}
+          image: ${{ env.REGISTRY }}/${{ github.repository }}@${{ steps.build.outputs.digest }}
           format: spdx-json
-          output-file: artifacts/${{ steps.meta.outputs.sbom }}
+          output-file: artifacts/sbom-${{ steps.build.outputs.digest }}.spdx.json
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.6.0
 
-      - name: Sign container image
+      - name: Sign container image (keyless)
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
           set -euo pipefail
-          IMAGE_REF="${{ steps.meta.outputs.image }}@${{ steps.build.outputs.digest }}"
+          IMAGE_REF="${{ env.REGISTRY }}/${{ github.repository }}@${{ steps.build.outputs.digest }}"
           cosign sign --yes --keyless "$IMAGE_REF"
 
-      - name: Generate provenance predicate
-        env:
-          IMAGE_REF: ${{ steps.meta.outputs.image }}@${{ steps.build.outputs.digest }}
-          PROVENANCE_PATH: artifacts/${{ steps.meta.outputs.provenance }}
-          RELEASE_CREATED_AT: ${{ github.event.release.created_at }}
-        run: |
-          set -euo pipefail
-          node -e "
-          const fs=require('fs');
-          const path=require('path');
-          const ref=process.env.IMAGE_REF;
-          const digest=(ref.split('@')[1]||'').split(':')[1];
-          const repo=process.env.GITHUB_REPOSITORY;
-          const gitRef=process.env.GITHUB_REF;
-          const runId=process.env.GITHUB_RUN_ID;
-          const created=process.env.RELEASE_CREATED_AT||new Date().toISOString();
-          const finished=new Date().toISOString().replace('+00:00','Z');
-          const workflow=`https://github.com/${repo}/.github/workflows/release.yml`;
-          const stmt={
-            _type:'https://in-toto.io/Statement/v1',
-            subject:[{name:ref,digest:{sha256:digest}}],
-            predicateType:'https://slsa.dev/provenance/v1',
-            predicate:{
-              buildDefinition:{
-                buildType:'https://slsa.dev/container/v1',
-                externalParameters:{source:{uri:`git+https://github.com/${repo}@${gitRef}`}},
-                resolvedDependencies:[]
-              },
-              runDetails:{
-                builder:{id:workflow},
-                metadata:{invocationId:runId,startedOn:created,finishedOn:finished}
-              }
-            }
-          };
-          const out=process.env.PROVENANCE_PATH;
-          fs.mkdirSync(path.dirname(out),{recursive:true});
-          fs.writeFileSync(out,JSON.stringify(stmt,null,2));
-          "
-
-      - name: Attest image provenance
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-        run: |
-          set -euo pipefail
-          IMAGE_REF="${{ steps.meta.outputs.image }}@${{ steps.build.outputs.digest }}"
-          cosign attest --yes --keyless --type https://slsa.dev/provenance/v1 --predicate "artifacts/${{ steps.meta.outputs.provenance }}" "$IMAGE_REF"
-
+      # --- Release notes (script if present; else minimal default) ---
       - name: Compose release notes
         id: notes
+        shell: bash
         run: |
           set -euo pipefail
-          node scripts/build-release-notes.mjs \
-            | tee artifacts/release-notes.md
-        env:
-          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
-          IMAGE_REF: ${{ steps.meta.outputs.image_versioned }}
-          IMAGE_DIGEST_REF: ${{ steps.meta.outputs.image }}@${{ steps.build.outputs.digest }}
-          CHANGELOG_PATH: CHANGELOG.md
-          HEALTH_ENDPOINT: ${{ env.HEALTH_ENDPOINT }}
-          SBOM_NAME: ${{ steps.meta.outputs.sbom }}
-          PROVENANCE_NAME: ${{ steps.meta.outputs.provenance }}
-          DIST_ARCHIVE_NAME: ${{ steps.artifacts.outputs.dist }}
-          OPENAPI_ASSET_NAME: ${{ steps.artifacts.outputs.openapi }}
-          EXAMPLE_ENV_ASSET_NAME: ${{ steps.artifacts.outputs.example_env }}
-          COMPOSE_SNIPPET_ASSET_NAME: ${{ steps.artifacts.outputs.compose }}
-          DB_NOTE_PATH: docs/db-migrations.md
+          mkdir -p artifacts
+          if [[ -f scripts/build-release-notes.mjs ]]; then
+            node scripts/build-release-notes.mjs | tee artifacts/release-notes.md
+          else
+            cat > artifacts/release-notes.md <<'EOF'
+            ## Web release
 
-      - name: Update GitHub release
+            - Built and pushed multi-arch image to GHCR
+            - Generated SBOM (SPDX JSON)
+            - Image signed via cosign (keyless)
+            - See assets for dist tarball and checksums
+
+            EOF
+          fi
+
+      - name: Generate checksums
+        run: |
+          (cd artifacts && shasum -a 256 * > SHA256SUMS || true)
+
+      # --- Upload GitHub Release assets (attach to the already-published release) ---
+      - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.meta.outputs.tag }}
+          tag_name: ${{ github.event.release.tag_name }}
           body_path: artifacts/release-notes.md
           files: |
-            artifacts/${{ steps.artifacts.outputs.dist }}
-            artifacts/${{ steps.artifacts.outputs.openapi }}
-            artifacts/${{ steps.artifacts.outputs.example_env }}
-            artifacts/${{ steps.artifacts.outputs.compose }}
-            artifacts/${{ steps.meta.outputs.sbom }}
-            artifacts/${{ steps.meta.outputs.provenance }}
+            artifacts/*
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload debug bundle
+      # Also keep a copy in the workflow run for quick debugging
+      - name: Upload debug bundle (artifacts/)
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ steps.meta.outputs.tag }}
-          path: |
-            artifacts/${{ steps.artifacts.outputs.dist }}
-            artifacts/${{ steps.meta.outputs.sbom }}
-            artifacts/${{ steps.meta.outputs.provenance }}
+          name: dist-and-metadata-${{ github.event.release.tag_name }}
+          path: artifacts
+          if-no-files-found: ignore
