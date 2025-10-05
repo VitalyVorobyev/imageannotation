@@ -1,34 +1,38 @@
 name: Release (web)
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*.*.*'
 
-# Prevent the same tag from publishing twice in parallel
+# Minimize permissions; broaden only if needed
+permissions:
+  contents: write     # upload release assets, read repo
+  packages: write     # push image to GHCR
+  id-token: write     # keyless cosign signing
+
 concurrency:
-  group: release-${{ github.event.release.tag_name }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  REGISTRY: ghcr.io
+  HEALTH_ENDPOINT: /health
+
 jobs:
-  publish:
+  release:
     name: Build & publish web release
     runs-on: ubuntu-latest
-
-    # Minimize permissions; broaden only if needed
-    permissions:
-      contents: write     # upload release assets, read repo
-      packages: write     # push image to GHCR
-      id-token: write     # keyless cosign signing
-
-    env:
-      REGISTRY: ghcr.io
-      HEALTH_ENDPOINT: /health
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      # GHCR requires lowercase image names
+      - name: Compute IMAGE_NAME (lowercase)
+        run: echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
 
       # --- Build & test the SPA ---
       - name: Set up Node.js
@@ -55,7 +59,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          TAG="${{ github.event.release.tag_name }}"
+          TAG="${{ github.ref_name }}"
           REPO_NAME="${GITHUB_REPOSITORY##*/}"
           mkdir -p artifacts
 
@@ -90,12 +94,12 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          images: ${{ env.IMAGE_NAME }}
           # derive semver tags from the release tag
           tags: |
-            type=semver,pattern={{version}},value=${{ github.event.release.tag_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.release.tag_name }}
-            type=semver,pattern={{major}},value=${{ github.event.release.tag_name }}
+            type=semver,pattern={{version}},value=${{ github.ref_name }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ github.ref_name }}
+            type=semver,pattern={{major}},value=${{ github.ref_name }}
             type=raw,value=latest
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}
@@ -125,7 +129,7 @@ jobs:
         id: sbom
         uses: anchore/sbom-action@v0.20.0
         with:
-          image: ${{ env.REGISTRY }}/${{ github.repository }}@${{ steps.build.outputs.digest }}
+          image: ${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
           format: spdx-json
           output-file: artifacts/sbom-${{ steps.build.outputs.digest }}.spdx.json
 
@@ -137,7 +141,7 @@ jobs:
           COSIGN_EXPERIMENTAL: "true"
         run: |
           set -euo pipefail
-          IMAGE_REF="${{ env.REGISTRY }}/${{ github.repository }}@${{ steps.build.outputs.digest }}"
+          IMAGE_REF="${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
           cosign sign --yes --keyless "$IMAGE_REF"
 
       # --- Release notes (script if present; else minimal default) ---
@@ -169,7 +173,7 @@ jobs:
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.release.tag_name }}
+          tag_name: ${{ github.ref_name }}
           body_path: artifacts/release-notes.md
           files: |
             artifacts/*
@@ -181,6 +185,6 @@ jobs:
       - name: Upload debug bundle (artifacts/)
         uses: actions/upload-artifact@v4
         with:
-          name: dist-and-metadata-${{ github.event.release.tag_name }}
+          name: dist-and-metadata-${{ github.ref_name }}
           path: artifacts
           if-no-files-found: ignore
