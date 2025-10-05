@@ -142,7 +142,7 @@ jobs:
         run: |
           set -euo pipefail
           IMAGE_REF="${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
-          cosign sign --yes --keyless "$IMAGE_REF"
+          cosign sign --yes "$IMAGE_REF"
 
       # --- Release notes (script if present; else minimal default) ---
       - name: Compose release notes
