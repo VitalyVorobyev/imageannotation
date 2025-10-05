@@ -69,9 +69,23 @@ jobs:
           tar --owner=0 --group=0 --mtime='UTC 1970-01-01' -C dist -czf "artifacts/${DIST_TGZ}" .
 
           # Optional extras (guarded)
-          [[ -f docs/openapi.yaml ]] && cp docs/openapi.yaml "artifacts/${REPO_NAME}-${TAG}-openapi.yaml" || true
-          [[ -f example.env ]] && cp example.env "artifacts/${REPO_NAME}-${TAG}-example.env" || true
-          [[ -f deploy/compose.service.yaml ]] && cp deploy/compose.service.yaml "artifacts/${REPO_NAME}-${TAG}-compose.service.yaml" || true
+          if [[ -f docs/openapi.yaml ]]; then
+            OPENAPI_NAME="${REPO_NAME}-${TAG}-openapi.yaml"
+            cp docs/openapi.yaml "artifacts/${OPENAPI_NAME}"
+            echo "openapi=${OPENAPI_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ -f example.env ]]; then
+            EXAMPLE_ENV_NAME="${REPO_NAME}-${TAG}-example.env"
+            cp example.env "artifacts/${EXAMPLE_ENV_NAME}"
+            echo "example_env=${EXAMPLE_ENV_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ -f deploy/compose.service.yaml ]]; then
+            COMPOSE_SNIPPET_NAME="${REPO_NAME}-${TAG}-compose.service.yaml"
+            cp deploy/compose.service.yaml "artifacts/${COMPOSE_SNIPPET_NAME}"
+            echo "compose_snippet=${COMPOSE_SNIPPET_NAME}" >> "$GITHUB_OUTPUT"
+          fi
 
           # Outputs
           echo "dist=${DIST_TGZ}" >> "$GITHUB_OUTPUT"
@@ -144,10 +158,33 @@ jobs:
           IMAGE_REF="${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
           cosign sign --yes "$IMAGE_REF"
 
+      - name: Download image provenance attestation
+        id: provenance
+        shell: bash
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          IMAGE_REF="${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
+          PROVENANCE_FILE="provenance-${{ steps.build.outputs.digest }}.intoto.jsonl"
+          cosign download attestation "$IMAGE_REF" > "artifacts/${PROVENANCE_FILE}"
+          echo "asset_name=${PROVENANCE_FILE}" >> "$GITHUB_OUTPUT"
+
       # --- Release notes (script if present; else minimal default) ---
       - name: Compose release notes
         id: notes
         shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          IMAGE_REF: ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          IMAGE_DIGEST_REF: ${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+          DIST_ARCHIVE_NAME: ${{ steps.artifacts.outputs.dist }}
+          SBOM_NAME: sbom-${{ steps.build.outputs.digest }}.spdx.json
+          PROVENANCE_NAME: ${{ steps.provenance.outputs.asset_name }}
+          OPENAPI_ASSET_NAME: ${{ steps.artifacts.outputs.openapi }}
+          EXAMPLE_ENV_ASSET_NAME: ${{ steps.artifacts.outputs.example_env }}
+          COMPOSE_SNIPPET_ASSET_NAME: ${{ steps.artifacts.outputs.compose_snippet }}
         run: |
           set -euo pipefail
           mkdir -p artifacts
