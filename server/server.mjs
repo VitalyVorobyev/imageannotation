@@ -54,7 +54,14 @@ const server = createServer(async (req, res) => {
         return;
     }
 
-    const decodedUrl = decodeURIComponent(req.url.split('?')[0]);
+    let decodedUrl;
+    try {
+        decodedUrl = decodeURIComponent(req.url.split('?')[0]);
+    } catch (error) {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Bad Request');
+        return;
+    }
     const normalizedPath = normalize(decodedUrl).replace(/^\/+/, '');
     let filePath = resolve(staticDir, normalizedPath);
 
