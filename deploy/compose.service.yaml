@@ -1,6 +1,6 @@
 services:
   image-annotator:
-    image: ghcr.io/your-org/imageannotator:latest
+    image: ghcr.io/vitalyvorobyev/imageannotator:latest
     ports:
       - "8080:8080"
     env_file:
