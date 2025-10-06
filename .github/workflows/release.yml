@@ -145,7 +145,7 @@ jobs:
         with:
           image: ${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
           format: spdx-json
-          output-file: artifacts/sbom-${{ steps.build.outputs.digest }}.spdx.json
+          output-file: artifacts/sbom-${{ replace(steps.build.outputs.digest, ':', '-') }}.spdx.json
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.10.0
@@ -183,7 +183,7 @@ jobs:
           IMAGE_REF: ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
           IMAGE_DIGEST_REF: ${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
           DIST_ARCHIVE_NAME: ${{ steps.artifacts.outputs.dist }}
-          SBOM_NAME: sbom-${{ steps.build.outputs.digest }}.spdx.json
+          SBOM_NAME: sbom-${{ replace(steps.build.outputs.digest, ':', '-') }}.spdx.json
           PROVENANCE_NAME: ${{ steps.provenance.outputs.asset_name }}
           OPENAPI_ASSET_NAME: ${{ steps.artifacts.outputs.openapi }}
           EXAMPLE_ENV_ASSET_NAME: ${{ steps.artifacts.outputs.example_env }}
