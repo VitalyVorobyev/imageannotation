@@ -194,15 +194,14 @@ jobs:
           if [[ -f scripts/build-release-notes.mjs ]]; then
             node scripts/build-release-notes.mjs | tee artifacts/release-notes.md
           else
-            cat > artifacts/release-notes.md <<'EOF'
-            ## Web release
-
-            - Built and pushed multi-arch image to GHCR
-            - Generated SBOM (SPDX JSON)
-            - Image signed via cosign (keyless)
-            - See assets for dist tarball and checksums
-
-            EOF
+            {
+              echo '## Web release'
+              echo
+              echo '- Built and pushed multi-arch image to GHCR'
+              echo '- Generated SBOM (SPDX JSON)'
+              echo '- Image signed via cosign (keyless)'
+              echo '- See assets for dist tarball and checksums'
+            } > artifacts/release-notes.md
           fi
 
       - name: Generate checksums
