@@ -148,11 +148,9 @@ jobs:
           output-file: artifacts/sbom-${{ steps.build.outputs.digest }}.spdx.json
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.6.0
+        uses: sigstore/cosign-installer@v3.10.0
 
       - name: Sign container image (keyless)
-        env:
-          COSIGN_EXPERIMENTAL: "true"
         run: |
           set -euo pipefail
           IMAGE_REF="${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
@@ -161,15 +159,20 @@ jobs:
       - name: Download image provenance attestation
         id: provenance
         shell: bash
-        env:
-          COSIGN_EXPERIMENTAL: "true"
         run: |
           set -euo pipefail
           mkdir -p artifacts
           IMAGE_REF="${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
-          PROVENANCE_FILE="provenance-${{ steps.build.outputs.digest }}.intoto.jsonl"
-          cosign download attestation "$IMAGE_REF" > "artifacts/${PROVENANCE_FILE}"
-          echo "asset_name=${PROVENANCE_FILE}" >> "$GITHUB_OUTPUT"
+          DIGEST_SAFE="${{ steps.build.outputs.digest }}"
+          DIGEST_SAFE="${DIGEST_SAFE//:/-}"
+          PROVENANCE_FILE="provenance-${DIGEST_SAFE}.intoto.jsonl"
+          if cosign download attestation --predicate-type slsaprovenance "$IMAGE_REF" > "artifacts/${PROVENANCE_FILE}"; then
+            echo "asset_name=${PROVENANCE_FILE}" >> "$GITHUB_OUTPUT"
+          else
+            echo "No provenance attestation available for ${IMAGE_REF}; skipping artifact."
+            rm -f "artifacts/${PROVENANCE_FILE}"
+            echo "asset_name=" >> "$GITHUB_OUTPUT"
+          fi
 
       # --- Release notes (script if present; else minimal default) ---
       - name: Compose release notes
